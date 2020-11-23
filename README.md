@@ -269,6 +269,12 @@ ROM files.
 | Select            | Backspace  |
 | D-Pad             | Arrow Keys |
 
+## Known Issues
+* No audio support
+* Only works for GNU/Linux with clang
+    - `clang-6` and `clang-10` are known to work.
+    - gcc can build `jitboy`, but the generated executable file fails to work.
+
 ## License
 
 `jitboy` is licensed under the MIT License.
