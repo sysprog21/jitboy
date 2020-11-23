@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <sys/mman.h>
 
 #include "core.h"
@@ -291,14 +292,15 @@ static void show_statistics(gb_vm *vm)
             }
         }
 
-    printf("- total compiled rom functions: %lu\n", compiled_functions);
-    printf("- most frequent executed block @%#lx, %lu times executed\n",
+    printf("- total compiled rom functions: %" PRIu64 "\n", compiled_functions);
+    printf("- most frequent executed block @%" PRIx64 ", %" PRIu64
+           " times executed\n",
            most_executed_addr, most_executed);
     int cnt = vm->compiled_blocks[0][0x40].exec_count
                   ? vm->compiled_blocks[0][0x40].exec_count
                   : 1;
-    printf("- executed blocks total / per frame: %lu/%lu\n", total_executed,
-           total_executed / cnt);
+    printf("- executed blocks total / per frame: %" PRIu64 " / %" PRIu64 "\n",
+           total_executed, total_executed / cnt);
     printf("- frames: %u\n", vm->compiled_blocks[0][0x40].exec_count);
 }
 
