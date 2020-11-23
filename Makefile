@@ -57,10 +57,11 @@ $(OUT)/minilua: LuaJIT/src/host/minilua.c
 	$(CC) -o $@ $^ -lm
 
 src/emit.dasc: src/dasm_macros.inc
-$(OUT)/%.c: src/%.dasc $(OUT)/minilua
+$(OUT)/emit.c: src/emit.dasc $(OUT)/minilua
 	$(OUT)/minilua LuaJIT/dynasm/dynasm.lua $(DYNASMFLAGS) -I src -o $@ $<
 	
 clean:
 	$(RM) $(BIN) $(OBJS) $(deps)
+	$(RM) $(OUT)/minilua $(OUT)/emit.c
 
 -include $(deps)
