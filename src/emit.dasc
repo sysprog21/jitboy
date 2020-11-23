@@ -1,0 +1,1233 @@
+#include "../src/emit.h"
+
+#include "../LuaJIT/dynasm/dasm_proto.h"
+#include "../LuaJIT/dynasm/dasm_x86.h"
+
+#include <sys/mman.h>
+
+/* Register mapping
+ * A            r0b
+ * B            r1b
+ * C            r2b
+ * D            r3b
+ * E            r4b
+ * H            r5b
+ * L            r6b
+ * SP           r7w
+ * aMem         r8
+ * aState       r9
+ * temp1        r10(bw)
+ * temp2        r11(bw)
+ * temp3        r12(bw)
+ * (instCount)  r13
+ */
+
+    |.arch x64
+
+    |.define    A,      r0b
+    |.define    xA,     r0
+    |.define    B,      r1b
+    |.define    xB,     r1
+    |.define    C,      r2b
+    |.define    xC,     r2
+    |.define    D,      r3b
+    |.define    xD,     r3
+    |.define    E,      r13b
+    |.define    xE,     r13
+    |.define    H,      r5b
+    |.define    xH,     r5
+    |.define    L,      r6b
+    |.define    xL,     r6
+    |.define    SP,     r7w
+    |.define    xSP,    r7
+    |.define    aMem,   r8
+    |.define    aState, r9
+    |.define    tmp1,   r10
+    |.define    tmp1b,  r10b
+    |.define    tmp1w,  r10w
+    |.define    tmp2,   r11
+    |.define    tmp2b,  r11b
+    |.define    tmp2w,  r11w
+    |.define    tmp3,   r12
+    |.define    tmp3b,  r12b
+    |.define    tmp3w,  r12w
+    |.define    rArg1,  rdi
+    |.define    rArg2,  rsi
+    |.define    rArg3,  rdx
+    |.define    rRet,   rax
+
+    |.type state, gb_state, aState
+
+    |.include dasm_macros.inc
+
+static bool inst_nop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "NOP"
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_jp_target(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    switch (inst->op1) {
+    case TARGET_1:
+        | 9:
+        break;
+    case TARGET_2:
+        | 8:
+        break;
+    default:
+        printf("Invalid 2nd operand to JP/CALL\n");
+        return false;
+    }
+    return true;
+}
+
+static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "JP/CALL"
+
+    switch(inst->op1) {
+    case NONE:
+        break;
+    case CC_NZ:
+        | jz >1
+        break;
+    case CC_Z:
+        | jnz >1
+        break;
+    case CC_NC:
+        | jc >1
+        break;
+    case CC_C:
+        | jnc >1
+        break;
+    default:
+        printf("Invalid 1st operand to JP/CALL\n");
+        return false;
+    }
+
+    if (inst->opcode == CALL || inst->opcode == RST) {
+        | cg_print "call from "
+        | dec SP
+        | dec SP
+        | and xSP, 0xffff
+        | mov word [aMem+xSP], (uint16_t)(inst->address + inst->bytes)
+    } else {
+        | cg_print "jmp from "
+    }
+
+    | cg_printi inst->address
+    | cg_print " to "
+
+    | add qword state->inst_count, *cycles + inst->cycles;
+
+    switch (inst->op2) {
+    case IMM8:
+        | bt_call
+        | return inst->address + (int8_t)inst->args[1] + 2
+        break;
+    case IMM16:
+        | bt_call
+        | return inst->args[2]*256 + inst->args[1]
+        break;
+    case MEM_HL:
+        | mov tmp1, xH
+        | shl tmp1, 8
+        | add tmp1, xL
+        | bt_call
+        | return tmp1
+        break;
+    case MEM_0x00:
+        | bt_call
+        | return 0x00
+        break;
+    case MEM_0x08:
+        | bt_call
+        | return 0x08
+        break;
+    case MEM_0x10:
+        | bt_call
+        | return 0x10
+        break;
+    case MEM_0x18:
+        | bt_call
+        | return 0x18
+        break;
+    case MEM_0x20:
+        | bt_call
+        | return 0x20
+        break;
+    case MEM_0x28:
+        | bt_call
+        | return 0x28
+        break;
+    case MEM_0x30:
+        | bt_call
+        | return 0x30
+        break;
+    case MEM_0x38:
+        | bt_call
+        | return 0x38
+        break;
+    case TARGET_1:
+        if (inst->opcode == JP_FWD) {
+            | jmp >9
+        } else {
+            | jmp <9
+        }
+        break;
+    case TARGET_2:
+        if (inst->opcode == JP_FWD) {
+            | jmp >8
+        } else {
+            | jmp <8
+        }
+        break;
+    default:
+        printf("Invalid 2nd operand to JP/CALL\n");
+        return false;
+    }
+
+    if (inst->op1 != NONE) {
+        | 1:
+    }
+    
+    *cycles += inst->alt_cycles;
+    
+    return true;
+}
+
+static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RET"
+
+    switch(inst->op1) {
+    case NONE:
+        break;
+    case CC_NZ:
+        | jz >1
+        break;
+    case CC_Z:
+        | jnz >1
+        break;
+    case CC_NC:
+        | jc >1
+        break;
+    case CC_C:
+        | jnc >1
+        break;
+    default:
+        printf("Invalid 1st operand to RET\n");
+        return false;
+    }
+
+    if (inst->opcode == RETI) {
+        | cg_print "iret from "
+    } else {
+        | cg_print "ret from "
+    }
+    
+    | cg_printi inst->address
+    | cg_print " to "
+
+
+    if (inst->opcode == RETI) {
+        | mov byte state->ime, 1
+    }
+
+    | add qword state->inst_count, *cycles + inst->cycles;
+    | and xSP, 0xffff
+    | mov tmp1w, [aMem+xSP]
+    | inc SP
+    | inc SP
+    | and tmp1, 0xffff
+    | bt_ret
+    | return tmp1
+
+    if (inst->op1 != NONE) {
+        | 1:
+    }
+    
+    *cycles += inst->alt_cycles;
+    
+    return true;
+}
+
+static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "LD16"
+    switch(inst->op1) {
+    case REG_BC:
+        if (inst->op2 == IMM16) {
+            | mov B, inst->args[2];
+            | mov C, inst->args[1];
+        } else {
+            printf("Invalid 2nd operand to LD16\n");
+            return false;
+        }
+        break;
+    case REG_DE:
+        if (inst->op2 == IMM16) {
+            | mov D, inst->args[2];
+            | mov E, inst->args[1];
+        } else {
+            printf("Invalid 2nd operand to LD16\n");
+            return false;
+        }
+        break;
+    case REG_HL:
+        if (inst->op2 == IMM16) {
+            | mov H, inst->args[2];
+            | mov L, inst->args[1];
+        } else if (inst->op2 == MEM_8) {
+            | mov tmp1, xSP
+            | add tmp1, (int8_t)inst->args[1]
+            | pushfq
+            | mov L, tmp1b
+            | shr tmp1, 8
+            | mov H, tmp1b
+            | popfq
+        } else {
+            printf("Invalid 2nd operand to LD16\n");
+            return false;
+        }
+        break;
+    case REG_SP:
+        if (inst->op2 == IMM16) {
+            | mov SP, (uint16_t)(inst->args[1] + 256 * inst->args[2]);
+        } else if (inst->op2 == REG_HL) {
+            | mov xSP, xH
+            | shl xSP, 8
+            | and xL, 0xff
+            | or xSP, xL
+        } else {
+            printf("Invalid 2nd operand to LD16\n");
+            return false;
+        }
+        break;
+    case MEM_16:
+        if (inst->op2 == REG_SP) {
+            uint16_t addr = (uint16_t)(inst->args[1] + 256 * inst->args[2]);
+            | mov word [aMem + addr], SP;
+        } else {
+            printf("Invalid 2nd operand to LD16\n");
+            return false;
+        }
+        break;
+    default:
+        printf("Invalid 1st operand to LD16: %i\n", inst->op1);
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
+    | print "PUSH"
+    switch (inst->op1) {
+    case REG_AF:
+        | pushfq
+        | pop tmp1
+        | mov tmp3, 0
+        // CF
+        | mov tmp2, tmp1
+        | and tmp2, 0x1
+        | shl tmp2, 4
+        | or tmp3, tmp2
+        // AF, ZF
+        | mov tmp2, tmp1
+        | and tmp2, 0x50
+        | shl tmp2, 1
+        | or tmp3, tmp2
+        // SF
+        | mov tmp2b, state->f_subtract
+        | and tmp2, 0x01
+        | shl tmp2, 6
+        | or tmp3, tmp2
+        | dec SP
+        | dec SP
+        | mov [aMem + xSP + 1], A
+        | mov [aMem + xSP], tmp3b
+        break;
+    case REG_BC:
+        | dec SP
+        | dec SP
+        | mov [aMem + xSP + 1], B
+        | mov [aMem + xSP], C
+        break;
+    case REG_DE:
+        | dec SP
+        | dec SP
+        | mov [aMem + xSP + 1], D
+        | mov [aMem + xSP], E
+        break;
+    case REG_HL:
+        | dec SP
+        | dec SP
+        | mov [aMem + xSP + 1], H
+        | mov [aMem + xSP], L
+        break;
+    default:
+        printf("Invalid operand to PUSH\n");
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "POP"
+    switch (inst->op1) {
+    case REG_AF:
+        | mov A, [aMem + xSP + 1]
+        | mov tmp1b, [aMem + xSP]
+        | inc SP
+        | inc SP
+        | pushfq
+        | pop tmp3
+        | and tmp3, ~0xD1
+        // CF
+        | mov tmp2, tmp1
+        | and tmp2, 0x10
+        | shr tmp2, 4
+        | or tmp3, tmp2
+        // AF, ZF
+        | mov tmp2, tmp1
+        | and tmp2, 0xA0
+        | shr tmp2, 1
+        | or tmp3, tmp2
+        // SF
+        | mov tmp2, tmp1
+        | and tmp2, 0x40
+        | shr tmp2, 6
+        | mov byte state->f_subtract, tmp2b
+        | push tmp3
+        | popfq
+        break;
+    case REG_BC:
+        | mov B, [aMem + xSP + 1]
+        | mov C, [aMem + xSP]
+        | inc SP
+        | inc SP
+        break;
+    case REG_DE:
+        | mov D, [aMem + xSP + 1]
+        | mov E, [aMem + xSP]
+        | inc SP
+        | inc SP
+        break;
+    case REG_HL:
+        | mov H, [aMem + xSP + 1]
+        | mov L, [aMem + xSP]
+        | inc SP
+        | inc SP
+        break;
+    default:
+        printf("Invalid operand to PUSH\n");
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_ld(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "LD"
+    | inst mov, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_inc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "INC"
+    | inst1 inc, inst->op1
+    | pushfq
+    | mov byte state->f_subtract, 0
+    | popfq
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_dec(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "DEC"
+    | inst1 dec, inst->op1
+    | pushfq
+    | mov byte state->f_subtract, 1
+    | popfq
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_dec16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "DEC16"
+    switch (inst->op1) {
+    case REG_BC:
+        | mov tmp2, xB
+        | shl tmp2, 8
+        | mov tmp1, xC
+        | add tmp1, tmp2
+        | dec tmp1
+        | mov C, tmp1b
+        | shr tmp1, 8
+        | mov B, tmp1b
+        break;
+    case REG_DE:
+        | mov tmp2, xD
+        | shl tmp2, 8
+        | mov tmp1, xE
+        | add tmp1, tmp2
+        | dec tmp1
+        | mov E, tmp1b
+        | shr tmp1, 8
+        | mov D, tmp1b
+        break;
+    case REG_HL:
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | dec tmp1
+        | mov L, tmp1b
+        | shr tmp1, 8
+        | mov H, tmp1b
+        break;
+    case REG_SP:
+        | dec SP
+        break;
+    default:
+        printf("Invalid operand to DEC16\n");
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_inc16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "INC16"
+    switch (inst->op1) {
+    case REG_BC:
+        | mov tmp2, xB
+        | shl tmp2, 8
+        | mov tmp1, xC
+        | add tmp1, tmp2
+        | inc tmp1
+        | mov C, tmp1b
+        | shr tmp1, 8
+        | mov B, tmp1b
+        break;
+    case REG_DE:
+        | mov tmp2, xD
+        | shl tmp2, 8
+        | mov tmp1, xE
+        | add tmp1, tmp2
+        | inc tmp1
+        | mov E, tmp1b
+        | shr tmp1, 8
+        | mov D, tmp1b
+        break;
+    case REG_HL:
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | inc tmp1
+        | mov L, tmp1b
+        | shr tmp1, 8
+        | mov H, tmp1b
+        break;
+    case REG_SP:
+        | inc SP
+        break;
+    default:
+        printf("Invalid operand to INC16\n");
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "ADD16"
+    switch (inst->op1) {
+    case REG_HL:
+        | and xH, 0xff
+        | and xL, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | or tmp1, tmp2
+        switch (inst->op2) {
+        case REG_BC:
+            | and xB, 0xff
+            | and xC, 0xff
+            | mov tmp3, xB
+            | shl tmp3, 8
+            | mov tmp2, xC
+            | or tmp2, tmp3
+            break;
+        case REG_DE:
+            | and xD, 0xff
+            | and xE, 0xff
+            | mov tmp3, xD
+            | shl tmp3, 8
+            | mov tmp2, xE
+            | or tmp2, tmp3
+            break;
+        case REG_HL:
+            | mov tmp2, tmp1
+            break;
+        case REG_SP:
+            | mov tmp2, xSP
+            break;
+        default:
+            printf("Invalid 2nd operand to ADD16\n");
+            return false;
+        }
+        | add tmp1w, tmp2w
+        | pushfq
+        | mov L, tmp1b
+        | shr tmp1, 8
+        | mov H, tmp1b
+        | popfq
+        break;
+    case REG_SP:
+        if (inst->op2 != IMM8) {
+            printf("Invalid 2nd operand to ADD16\n");
+            return false;
+        }
+        | add SP, (int8_t)inst->args[1]
+        break;
+    default:
+        printf("Invalid 1st operand to ADD16\n");
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_di(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "DI"
+    | mov byte state->ime, 0
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_ei(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    *cycles += inst->cycles;
+    | print "EI"
+    | mov byte state->ime, 1
+    | add qword state->inst_count, *cycles
+    | return inst->address + inst->bytes;
+    return true;
+}
+
+static bool inst_cpl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    *cycles += inst->cycles;
+    | print "CPL"
+    | mov byte state->f_subtract, 1
+    | not A
+    return true;
+}
+
+static bool inst_cp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "CP"
+    | mov byte state->f_subtract, 1
+    | inst cmp, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_or(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "OR"
+    | mov byte state->f_subtract, 0
+    | inst or, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_and(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "AND"
+    | mov byte state->f_subtract, 0
+    | inst and, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_xor(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "XOR"
+    | mov byte state->f_subtract, 0
+    | inst xor, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_sub(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SUB"
+    | mov byte state->f_subtract, 1
+    | inst sub, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_add(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "ADD"
+    | mov byte state->f_subtract, 0
+    | inst add, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_adc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "ADC"
+    | mov byte state->f_subtract, 0
+    | inst adc, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_bit(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "BIT"
+    | mov byte state->f_subtract, 0
+    | bitinst test, inst->op1, inst->op2, 
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_ccf(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "CCF"
+    | mov byte state->f_subtract, 0
+    | cmc 
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_res(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RES"
+    | bitinst and, inst->op1, inst->op2, ~
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rr(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RR"
+    | mov byte state->f_subtract, 0
+    | inst2, rcr, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RL"
+    | mov byte state->f_subtract, 0
+    | inst2, rcl, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rrc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RRC"
+    | mov byte state->f_subtract, 0
+    | inst2, ror, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rlc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RLC"
+    | mov byte state->f_subtract, 0
+    | inst2, rol, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_sbc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SBC"
+    | mov byte state->f_subtract, 1
+    | inst sbb, inst->op1, inst->op2
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_set(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SET"
+    | bitinst or, inst->op1, inst->op2,
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_sla(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SLA"
+    | mov byte state->f_subtract, 0
+    | inst2, sal, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_sra(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SRA"
+    | mov byte state->f_subtract, 0
+    | inst2, sar, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_srl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SRL"
+    | mov byte state->f_subtract, 0
+    | inst2, shr, inst->op1, 1
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_scf(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SCF"
+    | mov byte state->f_subtract, 0
+    | stc
+    *cycles += inst->cycles;
+    return true;
+}
+
+// source: http://stackoverflow.com/questions/8119577/z80-daa-instruction
+static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "DAA"
+    | pushfq
+    | pop tmp3
+    | mov tmp1b, A
+    | and xA, 0xff
+    
+    | test byte state->f_subtract, 1  // SUBTRACT FLAG
+    | jz >2
+    | test tmp3w, 0x10
+    | jz >3
+    | sub xA, 0x6
+    | and xA, 0xff
+    | 3:
+    | test tmp3w, 0x1
+    | jz >1
+    | sub xA, 0x60
+    | jmp >1
+    | 2:
+    | test tmp3w, 0x10
+    | jnz >2
+    | and tmp1b, 0xf
+    | cmp tmp1b, 0x9
+    | jle >3
+    | add xA, 0x6
+    | jmp >3
+    | 2:
+    | add A, 0x6
+    | 3:
+    | test tmp3w, 0x1
+    | jnz >2
+    | cmp xA, 0x9f
+    | jle >1
+    | add xA, 0x60
+    | jmp >1
+    | 2:
+    | add xA, 0x60
+    | 1:
+    
+    | and tmp3w, ~0x10
+    | test xA, 0x100
+    | jz >1
+    | or tmp3w, 0x1
+    | 1:
+    | cmp A, 0
+    | jz >1
+    | or tmp3w, 0x40
+    | jmp >2
+    | 1:
+    | and tmp3w, ~0x40
+    | 2:
+    
+    | push tmp3
+    | popfq
+
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_swap(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "SWAP"
+    | mov byte state->f_subtract, 0
+    switch (inst->op1) {
+    case REG_A:
+        | mov tmp1, xA
+        | shl A, 4
+        | shr tmp1b, 4
+        | or A, tmp1b
+        break;
+    case REG_B:
+        | mov tmp1, xB
+        | shl B, 4
+        | shr tmp1b, 4
+        | or B, tmp1b
+        break;
+    case REG_C:
+        | mov tmp1, xC
+        | shl C, 4
+        | shr tmp1b, 4
+        | or C, tmp1b
+        break;
+    case REG_D:
+        | mov tmp1, xD
+        | shl D, 4
+        | shr tmp1b, 4
+        | or D, tmp1b
+        break;
+    case REG_E:
+        | mov tmp1, xE
+        | shl E, 4
+        | shr tmp1b, 4
+        | or E, tmp1b
+        break;
+    case REG_H:
+        | mov tmp1, xH
+        | shl H, 4
+        | shr tmp1b, 4
+        | or H, tmp1b
+        break;
+    case REG_L:
+        | mov tmp1, xL
+        | shl L, 4
+        | shr tmp1b, 4
+        | or L, tmp1b
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | mov tmp2b, [aMem + tmp1]
+        | shl byte [aMem + tmp1], 4
+        | shr tmp2b, 4
+        | or [aMem + tmp1], tmp2b
+        break;
+    default:
+        printf("Invalid operand to swap.\n");
+        return false;
+    }
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_halt(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "HALT"
+    *cycles += inst->cycles;
+    switch(inst->op1) {
+    case NONE:
+        | mov dword state->halt, 1
+        break;
+    case WAIT_STAT3:
+        | mov dword state->halt, WAIT_STAT3
+        break;
+    case WAIT_LY:
+        | mov dword state->halt, WAIT_LY
+        | mov byte state->halt_arg, inst->args[3]
+        break;
+    default:
+        printf("Invalid operand to halt.\n");
+        return false;
+    }
+    | add qword state->inst_count, *cycles
+    | return inst->address + inst->bytes
+    return true;
+}
+
+static bool inst_stop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "STOP"
+    // TODO: wake up if button pressed
+    *cycles += inst->cycles;
+    | mov byte state->halt, 1
+    | add qword state->inst_count, *cycles
+    | return inst->address
+    return true;
+}
+
+bool emit(gb_block *block, GList *inst)
+{
+    dasm_State *d;
+    uint32_t npc = 4;
+    uint64_t cycles = 0;
+    uint16_t end_address = 0;
+
+    |.section code
+    dasm_init(&d, DASM_MAXSECTION);
+
+    |.globals lbl_
+    void *labels[lbl__MAX];
+    dasm_setupglobal(&d, labels, lbl__MAX);
+
+    |.actionlist gb_actions
+    dasm_setup(&d, gb_actions);
+
+    dasm_growpc(&d, npc);
+
+    dasm_State **Dst = &d;
+    |.code
+    |->f_start:
+    | prologue
+
+    for (; inst; inst = inst->next) {
+        end_address = DATA(inst)->address + DATA(inst)->bytes - 1;
+        
+        if (DATA(inst)->flags & INST_FLAG_RESTORE_CC) {
+            | popfq
+            | pushfq
+        }
+
+        switch (DATA(inst)->opcode) {
+        case NOP:
+            if (!inst_nop(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case HALT:
+            if (!inst_halt(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case STOP:
+            if (!inst_stop(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case LD16:
+            if (!inst_ld16(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case LD:
+            if (!inst_ld(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case INC16:
+            if (!inst_inc16(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case INC:
+            if (!inst_inc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case DEC16:
+            if (!inst_dec16(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case DEC:
+            if (!inst_dec(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case JP_TARGET:
+            if (!inst_jp_target(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case JP_BWD:
+        case JP_FWD:
+        case JP:
+        case JR:
+        case CALL:
+        case RST:
+            if (!inst_jp(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case DAA:
+            if (!inst_daa(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case DI:
+            if (!inst_di(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case EI:
+            if (!inst_ei(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case CPL:
+            if (!inst_cpl(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SUB:
+            if (!inst_sub(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case CP:
+            if (!inst_cp(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case CCF:
+            if (!inst_ccf(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case OR:
+            if (!inst_or(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case AND:
+            if(!inst_and(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case XOR:
+            if (!inst_xor(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case PUSH:
+            if (!inst_push(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case POP:
+            if (!inst_pop(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RET:
+        case RETI:
+            if (!inst_ret(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case ADD16:
+            if (!inst_add16(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case ADD:
+            if (!inst_add(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case ADC:
+            if (!inst_adc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case BIT:
+            if (!inst_bit(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RES:
+            if (!inst_res(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RR:
+            if (!inst_rr(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RL:
+            if (!inst_rl(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RRC:
+            if(!inst_rrc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RLC:
+            if (!inst_rlc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SBC:
+            if (!inst_sbc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SCF:
+            if (!inst_scf(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SET:
+            if (!inst_set(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SLA:
+            if (!inst_sla(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SRA:
+            if (!inst_sra(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SRL:
+            if (!inst_srl(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SWAP:
+            if (!inst_swap(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        default:
+            printf("unrecognized opcode (%i)\n", DATA(inst)->opcode);
+            goto exit_fail;
+        }
+
+        if (DATA(inst)->flags & INST_FLAG_SAVE_CC) {
+            | pop tmp1
+            | pushfq
+        }
+    }
+
+    | add qword state->inst_count, cycles
+    | return -1
+
+    size_t sz;
+    if (dasm_link(&d, &sz) != 0) {
+        printf("dasm_link failed\n");
+        goto exit_fail;
+    }
+        
+    void *buf = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (!buf) {
+        printf("could not allocate memory for JIT compilation\n");
+        goto exit_fail;
+    }
+    
+    if (dasm_encode(&d, buf) != 0) {
+        printf("dynasm_encode failed\n");
+        goto exit_fail;
+    }
+    
+    if (mprotect(buf, sz, PROT_READ | PROT_EXEC) != 0) {
+        printf("could not make compiled function executable\n");
+        goto exit_fail;
+    }
+
+    block->func = labels[lbl_f_start];
+    block->mem = buf;
+    block->size = sz;
+    block->end_address = end_address;
+    block->exec_count = 0;
+
+    dasm_free(&d);
+
+    LOG_DEBUG("compilation successful!\n");
+
+    return true;
+    
+exit_fail:
+    dasm_free(&d);
+    return false;
+}
