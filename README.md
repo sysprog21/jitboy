@@ -259,6 +259,9 @@ make
 `build/jitboy` is the built executable file, and you can use it to load Game Boy
 ROM files.
 
+Runtime options:
+* `-O` specifies the optimization levels. Typically, you can use `-O 3`
+
 ## Key Controls
 
 | Action            | Keyboard   |
