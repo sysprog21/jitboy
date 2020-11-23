@@ -1,6 +1,6 @@
 # jitboy
 
-A Game Boy emulator with dynamic recompilation (JIT) for x86\_64.
+A Game Boy emulator with dynamic recompilation (JIT) for x86-64.
 
 ## Overview
 
@@ -103,7 +103,7 @@ Direct read access has some important implications:
 * Hardly any reading overhead: Compared to the Game Boy, there is hardly any reading
   overhead with the emulation. Since reading memory accesses are often among the most
   frequent instructions, this means a significant increase in efficiency.
-* The emulated Gameboy address space must be consecutive: the change of ROM or RAM
+* The emulated Game Boy address space must be consecutive: the change of ROM or RAM
   banks requires a lot of additional effort, as the corresponding bank must first
   be mapped into the address space by munmap and mmap.
 * Status registers must always be updated: the program sequence must be interrupted
