@@ -49,7 +49,7 @@ $(OUT)/%.o: src/%.c
 $(OUT)/%.o: $(OUT)/%.c
 	$(CC) -o $@ -c $(CFLAGS) $< -MMD -MF $@.d
 
-LuaJIT:
+LuaJIT/src/host/minilua.c:
 	git submodule update --init
 	touch $@
 
