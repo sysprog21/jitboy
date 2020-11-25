@@ -13,7 +13,7 @@ processor architecture, the instruction sequence of the emulated programms
 cannot be executed directly: either they are interpreted instruction by
 instruction, i.e. the fetch execute cycle is carried out in software, or
 it is translated into compatible instructions. The second method - often
-"dynarec" or called JITcompiler - is used in many emulators because of
+"dynarec" or called just-in-time (JIT) compiler - is used in many emulators because of
 its potentially higher speed.
 
 The instructions are translated mostly dynamically at runtime, since
@@ -22,14 +22,247 @@ paths from a known entry jump point. Self-modifying code and jumping to
 addresses calculated at runtime often make a fallback to interpretation or
 dynamic translation at runtime necessary in the case of static translation.
 
-The emulator "jitboy" carries out a dynamic translation of the processor
+The emulator `jitboy` carries out a dynamic translation of the processor
 instructions. All other interfaces (graphics, sound, memory) are additionally
 emulated by interpreting the address space.
+
+## Game Boy Specification
+
+| Component    | Detail                                                 |
+|------------- |--------------------------------------------------------|
+| CPU          | 8-bit (Similar to the Z80 processor)                   |
+| Clock Speed  | 4.194304MHz (4.295454MHz for SGB, max. 8.4MHz for CGB) |
+| Work RAM     | 8K Byte (32K Byte for CGB)                             |
+| Video RAM    | 8K Byte (16K Byte for CGB)                             |
+| Screen Size  | 2.6"                                                   |
+| Resolution   | 160x144 (20x18 tiles)                                  |
+| Max sprites  | Max 40 per screen, 10 per line                         |
+| Sprite sizes | 8x8 or 8x16                                            |
+| Palettes     | 1x4 BG, 2x3 OBJ (for CGB: 8x4 BG, 8x3 OBJ)             |
+| Colors       | 4 grayshades (32768 colors for CGB)                    |
+| Horiz Sync   | 9198 KHz (9420 KHz for SGB)                            |
+| Vert Sync    | 59.73 Hz (61.17 Hz for SGB)                            |
+| Sound        | 4 channels with stereo sound                           |
+| Power        | DC6V 0.7W (DC3V 0.7W for GB Pocket, DC3V 0.6W for CGB) |
+
+
+## CPU
+
+The main processor of Game Boy is a Sharp LR35902, a mix between the Z80 and
+the Intel 8080 that runs at 4.19 MHz. It is usually called as "GBZ80", however,
+it is not a Z80 compatible processor, nor a 8080 compatible processor.
+
+The Z80 is an 8-bit microprocessor, meaning that each operation is natively
+performed on a single byte. The instruction set does have some 16-bit
+operations but these are just executed as multiple cycles of 8-bit logic.
+The Z80 has a 16-bit wide address bus, which logically represents a 64K memory
+map. Data is transferred to the CPU over an 8-bit wide data bus but this is
+irrelevant to simulating the system at state machine level. The Z80 and the
+Intel 8080 that it derives from have 256 I/O ports for accessing external
+peripherals but the Game Boy CPU has none - favouring memory mapped I/O (MMIO)
+instead.
+
+| Type           | CPU Speed | NOP Instruction |
+|----------------|-----------|-----------------|
+| Machine Cycles | 1.05MHz   | 1 cycle         |
+| Clock Cycles   | 4.19MHz   | 4 cycles        |
+
+Notice, 1 Machine Cycle = 4 clock cycles.
+
+### Registers
+
+The Intel 8080 and Game Boy CPU have six 8-bit general purpose registers, an
+accumulator, flags, stack pointer and program counter. 16-bit access is also
+provided to each general purpose register and the accumulator and flags registers
+in sequential pairs. Additionally, the Z80 has two more 16-bit index registers,
+an alternative set of each general purpose, accumulator and flags registers and
+a few more bits and pieces.
+
+The Game Boy CPU has one bank of general purpose 8-bit registers:
+* B
+* C
+* D
+* E
+* H
+* L
+
+| Register | Size                | Purpose                           |
+|----------|---------------------|-----------------------------------|
+| AF       | 16-bit or two 8-bit | Accumulator (A) and flag bits (F) |
+| BC       | 16-bit or two 8-bit | Data/address                      |
+| DE       | 16-bit or two 8-bit | Data/address                      |
+| HL       | 16-bit or two 8-bit | Accumulator/address               |
+| SP       | 16-bit              | Stack pointer                     |
+| PC       | 16-bit              | Program counter                   |
+
+The Z80 defines alternative/banked versions of `AF`, `BC`, `DE` and `HL` that are
+accessed via the exchange opcodes and also has some more specialized registers.
+
+| Register | Size                | Purpose                        |
+|----------|---------------------|--------------------------------|
+| IX       | 16-bit or two 8-bit | Displacement offset base       |
+| IY       | 16-bit or two 8-bit | Displacement offset base       |
+| I        | 8-bit               | Interrupt vector base register |
+| R        | 8-bit               | DRAM refresh counter           |
+
+The flags register is a single byte that contains a bit-mask set according to
+the last result. Notice that the Game Boy flags register only uses the most
+significant 4-bits and does not implement the sign or parity/overflow flag.
+The least significant bits of the Game Boy flags register are always 0.
+
+| 8080/Z80 Bit | Game Boy Bit | Name            |
+|--------------|--------------|-----------------|
+| 0            | 4            | C: Carry        |
+| 1            | 6            | N: Subtract     |
+| 2            | -            | Parity/Overflow |
+| 3            | -            | Undocumented    |
+| 4            | 5            | H: Half Carry   |
+| 5            | -            | Undocumented    |
+| 6            | 7            | Z: Zero         |
+| 7            | -            | Sign            |
+
+### Core
+
+A CPU runs on a fetch-decode-execute cycle, called the machine cycle or m-cycle.
+The CPU will initially fetch a byte, whose location in the address space is pointed
+to by the program counter register (PC), decode it as an instruction (opcode) and
+execute it, or contextually use it as a literal for a previous cycle. Opcodes not
+related to absolute program flow, such as jumps or calls, will end a cycle by
+incrementing the program counter to point at the next byte in the address space.
+Opcode length is variable and whilst some operations run in a single cycle, others
+require multiple fetch-decode-execute cycles to run.
+Here is an example of running three simple opcodes on a Z80:
+
+![Example fetch-decode-execute on the Z80](/assets/cpu.svg)
+
+We are not really concerned with this low level cycle as software cannot control
+it, but we do need to keep track of how many have occurred so that we have a mechanism
+to match (read: approximate) platform timing. Our higher level cycle will be based on
+a concept of an operation, which can be represented by one or more opcodes and optional
+literals.
+
+Each operation cycle will:
+1. Fetch the next opcode.
+2. Decode the fetched opcode.
+3. Fetch any extra data required to resolve the operation including extra opcodes
+   and literals.
+4. Record all m-cycles consumed in the operation so that we can block later to
+   adjust our timings.
+5. Execute the opcode.
+
+### Instructions
+
+Instruction length can be 1 to 4 bytes long depending on the specific instruction.
+Opcodes can be seen as 9 bits long, and will be encoded into 1 or 2 bytes. If the
+first byte is 0xCB, then the second byte would be one of the high 256 opcodes,
+otherwise, the first byte is one of the low 256 opcodes.
+
+For example, if the first byte is `0x43`, then the opcode of this instruction is
+`0x043`; if the first byte is `0xCB` and the next byte is the `0x43`, then the
+opcode of this instruction is `0x143`.
+
+After the opcode, there can be a optional immediate, 8-bit or 16-bit long, gives
+the total length of 1 to 4 bytes.
+
+### Execution Timing
+
+The processor runs at either 4 MiHz (4194304 Hz = 2^12 Hz) or 8 MiHz (Double Speed
+Mode on GBC). The instruction execution time is always dividable by 4, ranging from
+4 cycles to 20 cycles. Ususally a clock cycle at 4 MiHz is called a T-cycle.
+4 T-cycles combined together is called a M-cycle (1 MiHz). So, one instruction could
+take 1 to 5 M-cycles to execute.
+
+The processor can do one memory read or memory write in one M-cycle, since the
+instruction itself needed be fetched, the execution speed can never be faster than
+the speed it can read the instruction. For example, a 3 byte instruction needs at
+least 3 M-cycles (12 T-cycles) to execute. If the instruction involves memory read
+or write, the processor would have to spend more M-cycles just to access the memory.
+
+The processor is also only capable of doing 1 8-bit ALU operation each M-cycle,
+if the instruction need to do 16-bit ALU operation, additional 1 M-cycle may be
+needed to complete the operation.
+
+The processor also has a prefetch queue with the length of 1 byte.
+
+## Memory and Memory Mapped I/O Devices
+
+The relationship between CPU, memory management unit (MMU), memory and memory
+mapped I/O (MMIO) devices looks something like the following.
+
+![Simple diagram of the Game Boy MMU](/assets/mmu.svg)
+
+An MMU should support reading and writing data in various lengths across the
+entire address space, whilst abstracting away the hardware that is physically
+attached to each location in the space.
+
+We can implement an MMU in a platform agnostic way by introducing a concept of
+segments. A segment has a location and length so that the MMU can correctly position
+it in address space and will provide implementation specific data access operations.
+For example, most Game Boy cartridges have a microcontroller acting as a memory bank
+controller (MBC) over multiple banks of read only memory (ROM). Read requests for data
+in an MBC address space will be forwarded to a configured page of ROM, whereas write
+requests will change which page is configured. For this reason we really need
+different interfaces for readable and writeable segments.
+
+### Memory Map
+
+16-bit addressing to ROM, RAM, and I/O registers.
+
+| Address   | Usage                                                        |
+|-----------|--------------------------------------------------------------|
+| 0000-3FFF | 16KB ROM Bank 00 (in cartridge, fixed at bank 00)            |
+| 4000-7FFF | 16KB ROM Bank 01..NN (in cartridge, switchable bank number)  |
+| 8000-9FFF | 8KB Video RAM (VRAM) (switchable bank 0-1 in CGB Mode)       |
+| A000-BFFF | 8KB External RAM (in cartridge, switchable bank, if any)     |
+| C000-CFFF | 4KB Work RAM Bank 0 (WRAM)                                   |
+| D000-DFFF | 4KB Work RAM Bank 1 (WRAM) (switchable bank 1-7 in CGB Mode) |
+| E000-FDFF | Same as C000-DDFF (ECHO) (typically not used)                |
+| FE00-FE9F | Sprite Attribute Table (OAM)                                 |
+| FEA0-FEFF | Not Usable                                                   |
+| FF00-FF7F | I/O Ports                                                    |
+| FF80-FFFE | High RAM (HRAM)                                              |
+| FFFF | Interrupt Enable Register                                         |
+
+### Jump Vectors in First ROM Bank
+
+The following addresses are supposed to be used as jump vectors:
+* 0000,0008,0010,0018,0020,0028,0030,0038 for RST commands
+* 0040,0048,0050,0058,0060 for Interrupts
+
+However, the memory may be used for any other purpose in case that your program
+does not use any (or only some) `RST` commands or Interrupts.
+RST commands are 1-byte opcodes that work similiar to `CALL` opcodes, except that
+the destination address is fixed.
+
+### Internal RAM Echo
+
+The addresses E000-FE00 appear to access the internal RAM the same as C000-DE00.
+(i.e. If you write a byte to address E000 it will appear at C000 and E000. Similarly,
+writing a byte to C000 will appear at C000 and E000.)
+
+### Cartridge Header in First ROM Bank
+
+The memory at 0100-014F contains the cartridge header.
+This area contains information about the program, its entry point, checksums,
+information about the used MBC chip, the ROM and RAM sizes, etc. Most of the
+bytes in this area are required to be specified correctly.
+
+### External Memory and Hardware
+
+The areas from 0000-7FFF and A000-BFFF may be used to connect external hardware.
+The first area is typically used to address ROM (read only, of course), cartridges
+with Memory Bank Controllers (MBCs) are additionally using this area to output data
+(write only) to the MBC chip.
+
+The second area is often used to address external RAM, or to address other external
+hardware (Real Time Clock, etc). External memory is often battery buffered, and may
+hold saved game positions and high scrore tables (etc.) even when the Game Boy is
+turned of, or when the cartridge is removed.
 
 ## JIT Compilation
 
 For the emulation of the Game Boy hardware on conventional PCs (x86-64
-architecture) a Just-In-Time (JIT) compiling emulation core was implemented.
+architecture) a JIT compiling emulation core was implemented.
 Instead of decoding and interpreting individual instructions in a loop, as
 with an interpreting emulator, an attempt is made to combine entire blocks
 that usually end with a jump instruction (JP, JR, CALL, RST, RET, RETI).
