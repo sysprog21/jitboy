@@ -1,7 +1,6 @@
 #include <SDL.h>
 
 #include "gbz80.h"
-#include "optimize.h"
 
 static gbz80_inst inst_table[] = {
     /* clang-format off */

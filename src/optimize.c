@@ -1,4 +1,3 @@
-#include "optimize.h"
 #include "emit.h"
 
 /* The instruction always has the same result deterministically regardless of
