@@ -86,8 +86,8 @@
 |.endif
 
 |.if DEBUG_CG
-|static void printtext(const char *s) { printf("%s", s); }
-|static void printnum(uint16_t num) { printf("%i", num); }
+|| static void printtext(const char *s) { printf("%s", s); }
+|| static void printnum(uint16_t num) { printf("%i", num); }
 |.endif
 
 |.if DEBUG_CG

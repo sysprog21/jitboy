@@ -75,7 +75,8 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
     uint8_t *mem = state->mem->mem;
 
     if (addr < 0x8000) {
-        LOG_DEBUG("write to rom @address %#lx, value is %#lx\n", addr, value);
+        LOG_DEBUG("write to rom @address %#" PRIx64 ", value is %#" PRIx64 "\n",
+                  addr, value);
 
         switch (state->mem->mbc) {
         case MBC_NONE:
@@ -139,7 +140,7 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
             break;
         }
     } else if (addr == 0xff05) {
-        LOG_DEBUG("Memory write to %#lx, reset to 0\n", addr);
+        LOG_DEBUG("Memory write to %#" PRIx64 ", reset to 0\n", addr);
         mem[addr] = 0;
     } else if (addr == 0xff00) { /* check for keypresses */
         LOG_DEBUG("Reading joypad state @%4x\n", state->pc);
@@ -165,7 +166,8 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
 
         mem[addr] = value;
     } else {
-        LOG_DEBUG("Memory write to %#lx, value is %#lx\n", addr, value);
+        LOG_DEBUG("Memory write to %#" PRIx64 ", value is %#" PRIx64 "\n", addr,
+                  value);
         mem[addr] = value;
     }
 }
