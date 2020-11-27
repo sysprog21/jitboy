@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     /* initialize memory */
     gb_vm *vm = malloc(sizeof(gb_vm));
     if (!init_vm(vm, argv[optind], opt_level, true)) {
-        fprintf(stderr, "FATAL: fail to initialize\n");
+        LOG_ERROR("Fail to initialize\n");
         exit(1);
     }
 
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     }
 
 end_program:
-    printf("terminating ...\n");
+    LOG_DEBUG("terminating ...\n");
 
     free_vm(vm);
     free(vm);

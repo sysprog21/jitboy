@@ -4,12 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef DEBUG
-#define LOG_DEBUG(...) printf(__VA_ARGS__)
-#else
-#define LOG_DEBUG(...)
-#endif
-
 typedef struct {
     uint8_t *mem;
     uint8_t *ram_banks;

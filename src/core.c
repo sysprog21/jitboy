@@ -113,12 +113,11 @@ bool run_vm(gb_vm *vm)
                          vm->state.pc, vm->opt_level))
                 goto compile_error;
         }
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-                     "execute function @%#x (count %i)\n", vm->state.pc,
-                     vm->compiled_blocks[0][vm->state.pc].exec_count);
+        LOG_DEBUG("execute function @%#x (count %i)\n", vm->state.pc,
+                  vm->compiled_blocks[0][vm->state.pc].exec_count);
         vm->compiled_blocks[0][vm->state.pc].exec_count++;
         vm->state.pc = vm->compiled_blocks[0][vm->state.pc].func(&vm->state);
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "finished\n");
+        LOG_DEBUG("finished\n");
     } else if (vm->state.pc < 0x8000) { /* execute function in ROM */
         uint8_t bank = vm->memory.current_rom_bank;
         if (vm->compiled_blocks[bank][vm->state.pc - 0x4000].exec_count == 0) {
@@ -126,14 +125,12 @@ bool run_vm(gb_vm *vm)
                          &vm->memory, vm->state.pc, vm->opt_level))
                 goto compile_error;
         }
-        SDL_LogDebug(
-            SDL_LOG_CATEGORY_APPLICATION, "execute function @%#x (count %i)\n",
-            vm->state.pc,
-            vm->compiled_blocks[bank][vm->state.pc - 0x4000].exec_count);
+        LOG_DEBUG("execute function @%#x (count %i)\n", vm->state.pc,
+                  vm->compiled_blocks[bank][vm->state.pc - 0x4000].exec_count);
         vm->compiled_blocks[bank][vm->state.pc - 0x4000].exec_count++;
         vm->state.pc =
             vm->compiled_blocks[bank][vm->state.pc - 0x4000].func(&vm->state);
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "finished\n");
+        LOG_DEBUG("finished\n");
     } else if (vm->state.pc >=
                0xff80) { /* execute function in internal RAM, e.g. for DMA */
         if (vm->highmem_blocks[vm->state.pc - 0xff80].exec_count == 0) {
@@ -141,40 +138,34 @@ bool run_vm(gb_vm *vm)
                          &vm->memory, vm->state.pc, vm->opt_level))
                 goto compile_error;
         }
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-                     "execute function @%#x (count %i)\n", vm->state.pc,
-                     vm->highmem_blocks[vm->state.pc - 0xff80].exec_count);
+        LOG_DEBUG("execute function @%#x (count %i)\n", vm->state.pc,
+                  vm->highmem_blocks[vm->state.pc - 0xff80].exec_count);
         vm->highmem_blocks[vm->state.pc - 0xff80].exec_count++;
         vm->state.pc =
             vm->highmem_blocks[vm->state.pc - 0xff80].func(&vm->state);
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "finished\n");
+        LOG_DEBUG("finished\n");
     } else { /* execute function in RAM */
         gb_block temp = {0};
         if (!compile(&temp, &vm->memory, vm->state.pc, vm->opt_level))
             goto compile_error;
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "execute function in ram\n");
+        LOG_DEBUG("execute function in ram\n");
         vm->state.pc = temp.func(&vm->state);
-        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "finished\n");
+        LOG_DEBUG("finished\n");
         free_block(&temp);
     }
 
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-                 "ioregs: STAT=%02x LY=%02x IF=%02x IE=%02x\n",
-                 vm->memory.mem[0xff41], vm->memory.mem[0xff44],
-                 vm->memory.mem[0xff0f], vm->memory.mem[0xffff]);
-    SDL_LogDebug(
-        SDL_LOG_CATEGORY_APPLICATION,
+    LOG_DEBUG("ioregs: STAT=%02x LY=%02x IF=%02x IE=%02x\n",
+              vm->memory.mem[0xff41], vm->memory.mem[0xff44],
+              vm->memory.mem[0xff0f], vm->memory.mem[0xffff]);
+    LOG_DEBUG(
+
         "register: A=%02x, BC=%02x%02x, DE=%02x%02x, HL=%02x%02x, SP=%04x\n",
         vm->state.a, vm->state.b, vm->state.c, vm->state.d, vm->state.e,
         vm->state.h, vm->state.l, vm->state._sp);
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "previous address: %#x\n",
-                 prev_pc);
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "next address: %#x\n",
-                 vm->state.pc);
+    LOG_DEBUG("previous address: %#x\n", prev_pc);
+    LOG_DEBUG("next address: %#x\n", vm->state.pc);
 
-#ifdef DEBUG_CG
-    printf("%i\n", vm->state.pc);
-#endif
+    LOG_DEBUG("pc = %i\n", vm->state.pc);
 
     do {
         if (vm->state.inst_count >= vm->state.next_update) {
@@ -210,10 +201,8 @@ bool run_vm(gb_vm *vm)
 
             uint16_t interrupt_addr = start_interrupt(&vm->state);
             if (interrupt_addr) {
-#ifdef DEBUG_CG
-                printf("interrupt from %i to %i\n", vm->state.pc,
-                       interrupt_addr);
-#endif
+                LOG_DEBUG("interrupt from %i to %i\n", vm->state.pc,
+                          interrupt_addr);
 
                 /* end halt mode */
                 if (vm->state.halt == 1)
@@ -250,23 +239,18 @@ bool run_vm(gb_vm *vm)
     return true;
 
 compile_error:
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                 "an error occurred while compiling the function @%#x.\n",
-                 vm->state.pc);
+    LOG_ERROR("an error occurred while compiling the function @%#x.\n",
+              vm->state.pc);
 
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                 "ioregs: STAT=%02x LY=%02x IF=%02x IE=%02x\n",
-                 vm->memory.mem[0xff41], vm->memory.mem[0xff44],
-                 vm->memory.mem[0xff0f], vm->memory.mem[0xffff]);
-    SDL_LogError(
-        SDL_LOG_CATEGORY_APPLICATION,
+    LOG_ERROR("ioregs: STAT=%02x LY=%02x IF=%02x IE=%02x\n",
+              vm->memory.mem[0xff41], vm->memory.mem[0xff44],
+              vm->memory.mem[0xff0f], vm->memory.mem[0xffff]);
+    LOG_ERROR(
         "register: A=%02x, BC=%02x%02x, DE=%02x%02x, HL=%02x%02x, SP=%04x\n",
         vm->state.a, vm->state.b, vm->state.c, vm->state.d, vm->state.e,
         vm->state.h, vm->state.l, vm->state._sp);
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "previous address: %#x\n",
-                 prev_pc);
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "next address: %#x\n",
-                 vm->state.pc);
+    LOG_ERROR("previous address: %#x\n", prev_pc);
+    LOG_ERROR("next address: %#x\n", vm->state.pc);
 
     return false;
 }

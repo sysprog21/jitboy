@@ -545,8 +545,7 @@ bool compile(gb_block *block,
              uint16_t start_address,
              int opt_level)
 {
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "compile new block @%#x\n",
-                 start_address);
+    LOG_DEBUG("compile new block @%#x\n", start_address);
 
     GList *instructions = NULL;
 
@@ -567,11 +566,10 @@ bool compile(gb_block *block,
         i += inst->bytes;
 
         if (inst->opcode == ERROR) {
-            printf("Invalid Opcode! (%#x)\n", opcode);
+            LOG_ERROR("Invalid Opcode! (%#x)\n", opcode);
             return false;
         } else {
-            SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "inst: %i @%#x\n",
-                         inst->opcode, inst->address);
+            LOG_DEBUG("inst: %i @%#x\n", inst->opcode, inst->address);
         }
 
         instructions = g_list_prepend(instructions, inst);

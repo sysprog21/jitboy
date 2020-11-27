@@ -85,40 +85,12 @@
 |.define print, .nop
 |.endif
 
-|.if DEBUG_CG
-|| static void printtext(const char *s) { printf("%s", s); }
+|.if DEBUG
 || static void printnum(uint16_t num) { printf("%i", num); }
 |.endif
 
-|.if DEBUG_CG
-|.macro cg_print, addr
-    | pushfq
-    | push r0
-    | push r1
-    | push r2
-    | push r6
-    | push r7
-    | push r8
-    | push r9
-    | push r10
-    | push r11
-    | mov rArg1, addr
-    | mov rax, &printtext
-    | call rax
-    | .nop 1
-    | pop r11
-    | pop r10
-    | pop r9
-    | pop r8
-    | pop r7
-    | pop r6
-    | pop r2
-    | pop r1
-    | pop r0
-    | popfq
-|.endmacro
-
-|.macro cg_printi, addr
+|.if DEBUG
+|.macro printi, addr
     | pushfq
     | push r0
     | push r1
@@ -145,8 +117,7 @@
     | popfq
 |.endmacro
 |.else
-|.define cg_print, .nop
-|.define cg_printi, .nop
+|.define printi, .nop
 |.endif
 
 |.macro bt_call
@@ -250,7 +221,7 @@
     |      opcode byte [aMem + tmp1]
     ||     break;
     || default:
-    ||     printf("Invalid operand to opcode\n");
+    ||     LOG_ERROR("Invalid operand to opcode\n");
     ||     return false;
     || }
 |.endmacro
@@ -288,7 +259,7 @@
     |      opcode byte [aMem + tmp1], arg2
     ||     break;
     || default:
-    ||     printf("Invalid operand to opcode\n");
+    ||     LOG_ERROR("Invalid operand to opcode\n");
     ||     return false;
     || }
 |.endmacro
@@ -392,7 +363,7 @@
     |          mov H, tmp1b
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -434,7 +405,7 @@
     |          opcode B, inst->args[1]
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -476,7 +447,7 @@
     |          opcode C, inst->args[1]
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -518,7 +489,7 @@
     |          opcode D, inst->args[1]
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -560,7 +531,7 @@
     |          opcode E, inst->args[1]
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -602,7 +573,7 @@
     |          opcode H, inst->args[1]
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -644,7 +615,7 @@
     |          opcode L, inst->args[1]
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -755,7 +726,7 @@
     |.endif    
     ||         break;
     ||     default:
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -773,7 +744,7 @@
     |          opcode [aMem + tmp1], A
     |.endif    
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -791,7 +762,7 @@
     |          opcode [aMem + tmp1], A
     |.endif    
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -809,7 +780,7 @@
     |          shr tmp1, 8
     |          mov H, tmp1b
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -827,7 +798,7 @@
     |          shr tmp1, 8
     |          mov H, tmp1b
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -856,7 +827,7 @@
     |          shr tmp3, 8
     |          mov H, tmp3b
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -864,7 +835,7 @@
     ||     if (op2 == REG_A) {
     |          write_byte (0xff00 + inst->args[1]), xA
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -874,7 +845,7 @@
     |          add xC, 0xff00
     |          write_byte xC, xA
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
@@ -883,12 +854,12 @@
     ||         uint16_t addr = inst->args[2] * 256 + inst->args[1];
     |          write_byte addr, xA
     ||     } else {
-    ||         printf("Unsupported operand op2=%i to opcode\n", op2);
+    ||         LOG_ERROR("Unsupported operand op2=%i to opcode\n", op2);
     ||         return false;
     ||     }
     ||     break;
     || default:
-    ||     printf("Unsupported operand op1=%i to opcode\n", op1);
+    ||     LOG_ERROR("Unsupported operand op1=%i to opcode\n", op1);
     ||     return false;
     || }
 |.endmacro
@@ -922,7 +893,7 @@
     |          opcode A, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -953,7 +924,7 @@
     |          opcode B, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -984,7 +955,7 @@
     |          opcode C, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -1015,7 +986,7 @@
     |          opcode D, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -1046,7 +1017,7 @@
     |          opcode E, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -1077,7 +1048,7 @@
     |          opcode H, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -1108,7 +1079,7 @@
     |          opcode L, prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
@@ -1145,12 +1116,12 @@
     |          opcode byte [aMem + tmp1], prefix 0x80
     ||         break;
     ||     default:
-    ||         printf("Invalid 2nd operand to opcode.\n");
+    ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");
     ||         return false;
     ||     }
     ||     break;
     || default:
-    ||     printf("Invalid 1st operand to opcode.\n");
+    ||     LOG_ERROR("Invalid 1st operand to opcode.\n");
     ||     return false;
     || }
 |.endmacro

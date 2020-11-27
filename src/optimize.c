@@ -109,7 +109,8 @@ bool optimize_block(GList **instructions, int opt_level)
 
         /* pattern is LD A,HL+; LD (DE),A; INC DE -> LD DE+, HL+ */
         if ((*a & 0xffffff) == 0x13122a) {
-            printf("optimizing block @%#x (3)\n", DATA(*instructions)->address);
+            LOG_DEBUG("optimizing block @%#x (3)\n",
+                      DATA(*instructions)->address);
             DATA(inst)->op1 = MEM_INC_DE;
             DATA(inst)->cycles = 6;
             DATA(inst)->bytes = 3;
@@ -121,7 +122,8 @@ bool optimize_block(GList **instructions, int opt_level)
 
         /* pattern f0 41 e6 03 20 fa -> wait for stat mode 3 */
         if ((*a) == 0x03e641f0 && (*(a + 1) & 0xffff) == 0xfa20) {
-            printf("optimizing block @%#x (4)\n", DATA(*instructions)->address);
+            LOG_DEBUG("optimizing block @%#x (4)\n",
+                      DATA(*instructions)->address);
             DATA(inst)->opcode = HALT;
             DATA(inst)->op1 = WAIT_STAT3;
             DATA(inst)->cycles = 0;
@@ -134,7 +136,8 @@ bool optimize_block(GList **instructions, int opt_level)
 
         /* pattern f0 44 fe ?? 20 fa -> wait for ly */
         if ((*a & 0x00ffffff) == 0xfe44f0 && (*(a + 1) & 0xffff) == 0xfa20) {
-            printf("optimizing block @%#x (5)\n", DATA(*instructions)->address);
+            LOG_DEBUG("optimizing block @%#x (5)\n",
+                      DATA(*instructions)->address);
             DATA(inst)->opcode = HALT;
             DATA(inst)->op1 = WAIT_LY;
             DATA(inst)->cycles = 0;
@@ -147,7 +150,8 @@ bool optimize_block(GList **instructions, int opt_level)
 
         /* pattern f0 00 f0 00 -> repeated read of jopad register */
         if ((*a) == 0x00f000f0) {
-            printf("optimizing block @%#x (6)\n", DATA(*instructions)->address);
+            LOG_DEBUG("optimizing block @%#x (6)\n",
+                      DATA(*instructions)->address);
             DATA(inst)->cycles += 3;
             DATA(inst)->bytes += 2;
             DATA(inst)->args = DATA(inst->next)->args;
@@ -174,8 +178,8 @@ bool optimize_block(GList **instructions, int opt_level)
             }
 
             if (can_optimize1) {
-                printf("optimizing block @%#x (1)\n",
-                       DATA(*instructions)->address);
+                LOG_DEBUG("optimizing block @%#x (1)\n",
+                          DATA(*instructions)->address);
                 /* optimize  2: ... JP <2
                  * to        JP >1 2: HALT 1: ... JP <2
                  *
@@ -219,8 +223,8 @@ bool optimize_block(GList **instructions, int opt_level)
                 break;
             } else if (can_optimize2) {
                 if (DATA(*instructions)->address < 0xff00)
-                    printf("optimizing block @%#x (2)\n",
-                           DATA(*instructions)->address);
+                    LOG_DEBUG("optimizing block @%#x (2)\n",
+                              DATA(*instructions)->address);
 
                 /* insert jump target at the position of the old start
                  * instruction.
@@ -234,8 +238,8 @@ bool optimize_block(GList **instructions, int opt_level)
                 DATA(inst)->opcode = JP_BWD;
                 DATA(inst)->op2 = TARGET_1;
             } else {
-                printf("jp to start detected, could not optimize %#x\n",
-                       DATA(*instructions)->address);
+                LOG_DEBUG("jp to start detected, could not optimize %#x\n",
+                          DATA(*instructions)->address);
             }
         }
     }

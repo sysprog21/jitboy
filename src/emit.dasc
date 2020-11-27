@@ -77,7 +77,7 @@ static bool inst_jp_target(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | 8:
         break;
     default:
-        printf("Invalid 2nd operand to JP/CALL\n");
+        LOG_ERROR("Invalid 2nd operand to JP/CALL\n");
         return false;
     }
     return true;
@@ -103,22 +103,22 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | jnc >1
         break;
     default:
-        printf("Invalid 1st operand to JP/CALL\n");
+        LOG_ERROR("Invalid 1st operand to JP/CALL\n");
         return false;
     }
 
     if (inst->opcode == CALL || inst->opcode == RST) {
-        | cg_print "call from "
+        | print "call from "
         | dec SP
         | dec SP
         | and xSP, 0xffff
         | mov word [aMem+xSP], (uint16_t)(inst->address + inst->bytes)
     } else {
-        | cg_print "jmp from "
+        | print "jmp from "
     }
 
-    | cg_printi inst->address
-    | cg_print " to "
+    | printi inst->address
+    | print " to "
 
     | add qword state->inst_count, *cycles + inst->cycles;
 
@@ -185,7 +185,7 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         }
         break;
     default:
-        printf("Invalid 2nd operand to JP/CALL\n");
+        LOG_ERROR("Invalid 2nd operand to JP/CALL\n");
         return false;
     }
 
@@ -218,18 +218,18 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | jnc >1
         break;
     default:
-        printf("Invalid 1st operand to RET\n");
+        LOG_ERROR("Invalid 1st operand to RET\n");
         return false;
     }
 
     if (inst->opcode == RETI) {
-        | cg_print "iret from "
+        | print "iret from "
     } else {
-        | cg_print "ret from "
+        | print "ret from "
     }
     
-    | cg_printi inst->address
-    | cg_print " to "
+    | printi inst->address
+    | print " to "
 
 
     if (inst->opcode == RETI) {
@@ -263,7 +263,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | mov B, inst->args[2];
             | mov C, inst->args[1];
         } else {
-            printf("Invalid 2nd operand to LD16\n");
+            LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
         }
         break;
@@ -272,7 +272,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | mov D, inst->args[2];
             | mov E, inst->args[1];
         } else {
-            printf("Invalid 2nd operand to LD16\n");
+            LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
         }
         break;
@@ -289,7 +289,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | mov H, tmp1b
             | popfq
         } else {
-            printf("Invalid 2nd operand to LD16\n");
+            LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
         }
         break;
@@ -302,7 +302,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | and xL, 0xff
             | or xSP, xL
         } else {
-            printf("Invalid 2nd operand to LD16\n");
+            LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
         }
         break;
@@ -311,12 +311,12 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             uint16_t addr = (uint16_t)(inst->args[1] + 256 * inst->args[2]);
             | mov word [aMem + addr], SP;
         } else {
-            printf("Invalid 2nd operand to LD16\n");
+            LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
         }
         break;
     default:
-        printf("Invalid 1st operand to LD16: %i\n", inst->op1);
+        LOG_ERROR("Invalid 1st operand to LD16: %i\n", inst->op1);
         return false;
     }
     *cycles += inst->cycles;
@@ -369,7 +369,7 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
         | mov [aMem + xSP], L
         break;
     default:
-        printf("Invalid operand to PUSH\n");
+        LOG_ERROR("Invalid operand to PUSH\n");
         return false;
     }
     *cycles += inst->cycles;
@@ -425,7 +425,7 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | inc SP
         break;
     default:
-        printf("Invalid operand to PUSH\n");
+        LOG_ERROR("Invalid operand to PUSH\n");
         return false;
     }
     *cycles += inst->cycles;
@@ -500,7 +500,7 @@ static bool inst_dec16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | dec SP
         break;
     default:
-        printf("Invalid operand to DEC16\n");
+        LOG_ERROR("Invalid operand to DEC16\n");
         return false;
     }
     *cycles += inst->cycles;
@@ -545,7 +545,7 @@ static bool inst_inc16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | inc SP
         break;
     default:
-        printf("Invalid operand to INC16\n");
+        LOG_ERROR("Invalid operand to INC16\n");
         return false;
     }
     *cycles += inst->cycles;
@@ -587,7 +587,7 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | mov tmp2, xSP
             break;
         default:
-            printf("Invalid 2nd operand to ADD16\n");
+            LOG_ERROR("Invalid 2nd operand to ADD16\n");
             return false;
         }
         | add tmp1w, tmp2w
@@ -599,13 +599,13 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         break;
     case REG_SP:
         if (inst->op2 != IMM8) {
-            printf("Invalid 2nd operand to ADD16\n");
+            LOG_ERROR("Invalid 2nd operand to ADD16\n");
             return false;
         }
         | add SP, (int8_t)inst->args[1]
         break;
     default:
-        printf("Invalid 1st operand to ADD16\n");
+        LOG_ERROR("Invalid 1st operand to ADD16\n");
         return false;
     }
     *cycles += inst->cycles;
@@ -938,7 +938,7 @@ static bool inst_swap(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | or [aMem + tmp1], tmp2b
         break;
     default:
-        printf("Invalid operand to swap.\n");
+        LOG_ERROR("Invalid operand to swap.\n");
         return false;
     }
     *cycles += inst->cycles;
@@ -961,7 +961,7 @@ static bool inst_halt(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | mov byte state->halt_arg, inst->args[3]
         break;
     default:
-        printf("Invalid operand to halt.\n");
+        LOG_ERROR("Invalid operand to halt.\n");
         return false;
     }
     | add qword state->inst_count, *cycles
@@ -1180,7 +1180,7 @@ bool emit(gb_block *block, GList *inst)
                 goto exit_fail;
             break;
         default:
-            printf("unrecognized opcode (%i)\n", DATA(inst)->opcode);
+            LOG_ERROR("unrecognized opcode (%i)\n", DATA(inst)->opcode);
             goto exit_fail;
         }
 
@@ -1195,23 +1195,23 @@ bool emit(gb_block *block, GList *inst)
 
     size_t sz;
     if (dasm_link(&d, &sz) != 0) {
-        printf("dasm_link failed\n");
+        LOG_ERROR("dasm_link failed\n");
         goto exit_fail;
     }
         
     void *buf = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (!buf) {
-        printf("could not allocate memory for JIT compilation\n");
+        LOG_ERROR("could not allocate memory for JIT compilation\n");
         goto exit_fail;
     }
     
     if (dasm_encode(&d, buf) != 0) {
-        printf("dynasm_encode failed\n");
+        LOG_ERROR("dynasm_encode failed\n");
         goto exit_fail;
     }
     
     if (mprotect(buf, sz, PROT_READ | PROT_EXEC) != 0) {
-        printf("could not make compiled function executable\n");
+        LOG_ERROR("could not make compiled function executable\n");
         goto exit_fail;
     }
 

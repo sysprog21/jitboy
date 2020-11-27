@@ -1,5 +1,6 @@
 CC = clang
 CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter
+CFLAGS += -include src/common.h
 LDFLAGS =
 LIBS = -lm
 
@@ -32,13 +33,9 @@ sanitizer: CFLAGS += -Og -g -fsanitize=thread
 sanitizer: LDFLAGS += -fsanitize=thread
 sanitizer: $(BIN)
 
-debug: CFLAGS += -g -D DEBUG -D DEBUG_CG
-debug: DYNASMFLAGS += -D DEBUG -D DEBUG_CG
+debug: CFLAGS += -g -D DEBUG
+debug: DYNASMFLAGS += -D DEBUG
 debug: $(BIN)
-
-debug_cg: CFLAGS += -D DEBUG_CG
-debug_cg: DYNASMFLAGS += -D DEBUG_CG
-debug_cg: $(BIN)
 
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBS)

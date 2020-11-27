@@ -8,6 +8,12 @@
 #include "core.h"
 #include "memory.h"
 
+/* Replace logging with shortened messages */
+#ifdef DEBUG
+#undef LOG_DEBUG
+#define LOG_DEBUG(...) fprintf(stdout, "DEBUG: " __VA_ARGS__)
+#endif
+
 static uint8_t get_joypad_state(gb_keys *keys, uint8_t value)
 {
     uint8_t result = 0;
@@ -41,13 +47,13 @@ static void gb_memory_change_rom_bank(gb_memory *mem, int bank)
         return;
 
     if (munmap(mem->mem + 0x4000, 0x4000) != 0) {
-        printf("munmap failed (%i)\n", errno);
+        LOG_ERROR("munmap failed (%i)\n", errno);
         return;
     }
 
     if (mmap(mem->mem + 0x4000, 0x4000, PROT_READ, MAP_PRIVATE | MAP_FIXED,
              mem->fd, 0x4000 * bank) == MAP_FAILED) {
-        printf("mmap failed! (%i)\n", errno);
+        LOG_ERROR("mmap failed! (%i)\n", errno);
         return;
     }
 
@@ -136,7 +142,7 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
             }
             break;
         default:
-            printf("Unknown MBC, cannot switch bank\n");
+            LOG_ERROR("Unknown MBC, cannot switch bank\n");
             break;
         }
     } else if (addr == 0xff05) {
@@ -180,27 +186,27 @@ bool gb_memory_init(gb_memory *mem, const char *filename)
         mem->mem = mmap((void *) 0x1000000, 0x10000, PROT_READ | PROT_WRITE,
                         MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
         if (mem->mem == MAP_FAILED) {
-            printf("Map failed! (%i)\n", errno);
+            LOG_ERROR("Map failed! (%i)\n", errno);
             return false;
         }
     } else {
         mem->fd = open(filename, O_RDONLY);
         if (mem->fd < 0) {
-            printf("Could not open file! (%i)\n", errno);
+            LOG_ERROR("Could not open file! (%i)\n", errno);
             return false;
         }
 
         mem->mem = mmap((void *) 0x1000000, 0x8000, PROT_READ, MAP_PRIVATE,
                         mem->fd, 0);
         if (mem->mem == MAP_FAILED) {
-            printf("Map failed! (%i)\n", errno);
+            LOG_ERROR("Map failed! (%i)\n", errno);
             return false;
         }
 
         if (mmap(mem->mem + 0x8000, 0x8000, PROT_READ | PROT_WRITE,
                  MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1,
                  0) == MAP_FAILED) {
-            printf("Allocating memory failed! (%i)\n", errno);
+            LOG_ERROR("Allocating memory failed! (%i)\n", errno);
             return false;
         }
     }
@@ -227,7 +233,7 @@ bool gb_memory_free(gb_memory *mem)
 
     if (munmap(mem->mem, 0x8000) != 0 ||
         munmap(mem->mem + 0x8000, 0x8000) != 0) {
-        printf("munmap failed (%i)\n", errno);
+        LOG_ERROR("munmap failed (%i)\n", errno);
         return false;
     }
     return true;

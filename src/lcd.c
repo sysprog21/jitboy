@@ -174,8 +174,8 @@ bool init_window(gb_lcd *lcd)
                                 SDL_WINDOWPOS_UNDEFINED, 160 * 3, 144 * 3,
                                 SDL_WINDOW_OPENGL);
     if (!lcd->win) {
-        fprintf(stderr, "Window could not be created! SDL_Error: %s\n",
-                SDL_GetError());
+        LOG_ERROR("Window could not be created! SDL_Error: %s\n",
+                  SDL_GetError());
         return false;
     }
 
