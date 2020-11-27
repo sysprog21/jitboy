@@ -17,7 +17,7 @@ typedef struct _GList {
 
 #if defined(__GNUC__) || defined(__clang__)
 #define _G_NEW(struct_type, n_structs, func)          \
-    (struct_type *) (G_GNUC_EXTENSION({               \
+    (struct_type *) (__extension__({                  \
         size_t __n = (size_t)(n_structs);             \
         size_t __s = sizeof(struct_type);             \
         gpointer __p;                                 \
@@ -37,14 +37,8 @@ typedef struct _GList {
 #define g_new(struct_type, n_structs) _G_NEW(struct_type, n_structs, malloc)
 
 #if defined(__GNUC__) || defined(__clang__)
-#define G_GNUC_EXTENSION __extension__
-#else
-#define G_GNUC_EXTENSION
-#endif
-
-#if defined(__GNUC__) || defined(__clang__)
 #define _G_BOOLEAN_EXPR(expr)    \
-    G_GNUC_EXTENSION({           \
+    __extension__({              \
         int _g_boolean_var_;     \
         if (expr)                \
             _g_boolean_var_ = 1; \
