@@ -222,9 +222,10 @@ bool optimize_block(GList **instructions, int opt_level)
                 DATA(inst)->flags &= ~INST_FLAG_ENDS_BLOCK;
                 break;
             } else if (can_optimize2) {
-                if (DATA(*instructions)->address < 0xff00)
+                if (DATA(*instructions)->address < 0xff00) {
                     LOG_DEBUG("optimizing block @%#x (2)\n",
                               DATA(*instructions)->address);
+                }
 
                 /* insert jump target at the position of the old start
                  * instruction.
