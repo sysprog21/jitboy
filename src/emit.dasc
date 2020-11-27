@@ -1223,6 +1223,19 @@ bool emit(gb_block *block, GList *inst)
 
     dasm_free(&d);
 
+#ifdef DEBUG
+    static int cg_count = 0;
+    /* Write generated machine code to a temporary file.
+     * View with:
+     *   objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
+     */
+    char cg_filename[18];
+    sprintf(cg_filename, "/tmp/jitcode%d", cg_count++);
+    FILE *f = fopen(cg_filename, "wb");
+    fwrite(buf, sz, 1, f);
+    fclose(f);
+#endif
+
     LOG_DEBUG("compilation successful!\n");
 
     return true;

@@ -568,9 +568,8 @@ bool compile(gb_block *block,
         if (inst->opcode == ERROR) {
             LOG_ERROR("Invalid Opcode! (%#x)\n", opcode);
             return false;
-        } else {
-            LOG_DEBUG("inst: %i @%#x\n", inst->opcode, inst->address);
         }
+        LOG_DEBUG("inst: %i @%#x\n", inst->opcode, inst->address);
 
         instructions = g_list_prepend(instructions, inst);
 

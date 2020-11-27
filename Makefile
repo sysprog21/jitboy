@@ -60,5 +60,6 @@ $(OUT)/emit.c: src/emit.dasc $(OUT)/minilua
 clean:
 	$(RM) $(BIN) $(OBJS) $(deps)
 	$(RM) $(OUT)/minilua $(OUT)/emit.c
+	$(RM) /tmp/jitcode*
 
 -include $(deps)

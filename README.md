@@ -495,6 +495,18 @@ ROM files.
 Runtime options:
 * `-O` specifies the optimization levels. Typically, you can use `-O 3`
 
+To enable extra debugging information, you can rebuild the emulator.
+```shell
+make clean debug
+```
+
+Then, the verbose messages will be dumped when `jitboy` loads and runs the given ROM file.
+Meanwhile, the files whose name starts with `/tmp/jitcode` will be generated along with JIT
+compilation. You can disassemble them by the command.
+```shell
+objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
+```
+
 ## Key Controls
 
 | Action            | Keyboard   |
