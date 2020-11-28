@@ -59,6 +59,5 @@ $(OUT)/emit.c: src/emit.dasc $(OUT)/minilua src/dasm_macros.inc
 clean:
 	$(RM) $(BIN) $(OBJS) $(deps)
 	$(RM) $(OUT)/minilua $(OUT)/emit.c
-	$(RM) /tmp/jitcode*
 
 -include $(deps)
