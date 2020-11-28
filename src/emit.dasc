@@ -7,19 +7,21 @@
 
 /* Register mapping
  *
- * A            r0b
- * B            r1b
- * C            r2b
- * D            r3b
- * E            r4b
- * H            r5b
- * L            r6b
- * SP           r7w
- * aMem         r8
- * aState       r9
- * temp1        r10/r10b/r10w
- * temp2        r11/r11b/r11w
- * temp3        r12/r12b/r12w
+ * GBZ80                x86-64
+ * ----------------     -------------
+ * A                    r0b
+ * B                    r1b
+ * C                    r2b
+ * D                    r3b
+ * E                    r4b
+ * H                    r5b
+ * L                    r6b
+ * SP                   r7w
+ * aMem                 r8
+ * aState               r9
+ * tmp1/tmp1b/tmp1w     r10/r10b/r10w
+ * tmp2/tmp2b/tmp2w     r11/r11b/r11w
+ * tmp3/tmp3b/tmp3w     r12/r12b/r12w
  * (instCount)  r13
  *
  * register suffix "b" means 8-bit low; register suffix "w" means 16-bit.
