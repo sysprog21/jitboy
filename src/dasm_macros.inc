@@ -27,33 +27,6 @@
     | popfq
 |.endmacro
 
-|.macro print2, text
-    | pushfq
-    | push r0
-    | push r1
-    | push r2
-    | push r6
-    | push r7
-    | push r8
-    | push r9
-    | push r10
-    | push r11
-    | mov rArg1, text
-    | mov rax, &puts
-    | call rax
-    | .nop 1
-    | pop r11
-    | pop r10
-    | pop r9
-    | pop r8
-    | pop r7
-    | pop r6
-    | pop r2
-    | pop r1
-    | pop r0
-    | popfq
-|.endmacro
-
 |.if DEBUG
 |.macro print, text
     | pushfq
@@ -293,7 +266,7 @@
     |          opcode A, (int8_t)inst->args[1]
     ||         break;
     ||     case MEM_8:
-    |          opcode A, [aMem + (0xff00+inst->args[1])]
+    |          opcode A, [aMem + (0xff00 + inst->args[1])]
     ||         break;
     ||     case MEM_C:
     |          and xC, 0xff
@@ -332,10 +305,11 @@
     |          popfq
     |          opcode A, [aMem + tmp1]
     ||         break;
-    ||     case MEM_16:
-    ||         { uint16_t addr = inst->args[1] + 256*inst->args[2];
+    ||     case MEM_16: {
+    ||         uint16_t addr = inst->args[1] + 256 * inst->args[2];
     |          opcode A, [aMem + addr]
-    ||         break; }
+    ||         break;
+    ||     }
     ||     case MEM_DEC_HL:
     |          and xL, 0xff
     |          and xH, 0xff
@@ -343,7 +317,7 @@
     |          shl tmp2, 8
     |          mov tmp1, xL
     |          add tmp1, tmp2
-    |          opcode A, [aMem+tmp1]
+    |          opcode A, [aMem + tmp1]
     |          dec tmp1
     |          mov L, tmp1b
     |          shr tmp1, 8
@@ -356,7 +330,7 @@
     |          shl tmp2, 8
     |          mov tmp1, xL
     |          add tmp1, tmp2
-    |          opcode A, [aMem+tmp1]
+    |          opcode A, [aMem + tmp1]
     |          inc tmp1
     |          mov L, tmp1b
     |          shr tmp1, 8

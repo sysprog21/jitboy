@@ -120,7 +120,7 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | dec SP
         | dec SP
         | and xSP, 0xffff
-        | mov word [aMem+xSP], (uint16_t)(inst->address + inst->bytes)
+        | mov word [aMem + xSP], (uint16_t)(inst->address + inst->bytes)
     } else {
         | print "jmp from "
     }
@@ -137,7 +137,7 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         break;
     case IMM16:
         | bt_call
-        | return inst->args[2]*256 + inst->args[1]
+        | return inst->args[2] * 256 + inst->args[1]
         break;
     case MEM_HL:
         | mov tmp1, xH
@@ -246,7 +246,7 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     | add qword state->inst_count, *cycles + inst->cycles;
     | and xSP, 0xffff
-    | mov tmp1w, [aMem+xSP]
+    | mov tmp1w, [aMem + xSP]
     | inc SP
     | inc SP
     | and tmp1, 0xffff
@@ -834,7 +834,7 @@ static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | mov tmp1b, A
     | and xA, 0xff
     
-    | test byte state->f_subtract, 1  // SUBTRACT FLAG
+    | test byte state->f_subtract, 1  /* SUBTRACT FLAG */
     | jz >2
     | test tmp3w, 0x10
     | jz >3
@@ -865,7 +865,6 @@ static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | 2:
     | add xA, 0x60
     | 1:
-    
     | and tmp3w, ~0x10
     | test xA, 0x100
     | jz >1
@@ -878,7 +877,6 @@ static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | 1:
     | and tmp3w, ~0x40
     | 2:
-    
     | push tmp3
     | popfq
 
