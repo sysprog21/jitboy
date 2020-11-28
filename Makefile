@@ -1,7 +1,8 @@
-CC = clang
+CC = gcc
 CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -include src/common.h
-LDFLAGS =
+CFLAGS += -fno-pie
+LDFLAGS = -no-pie
 LIBS = -lm
 
 # SDL2

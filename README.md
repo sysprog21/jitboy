@@ -519,9 +519,7 @@ objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
 
 ## Known Issues
 * No audio support
-* Only works for GNU/Linux with clang
-    - `clang-6` and `clang-10` are known to work.
-    - gcc can build `jitboy`, but the generated executable file fails to work.
+* Only works for GNU/Linux
 
 ## License
 
