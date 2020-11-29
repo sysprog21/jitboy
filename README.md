@@ -517,6 +517,28 @@ objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
 | Select            | Backspace  |
 | D-Pad             | Arrow Keys |
 
+```
+                _n_________________
+                |_|_______________|_|
+                |  ,-------------.  |
+                | |  .---------.  | |
+                | |  |         |  | |
+                | |  |         |  | |
+                | |  |         |  | |
+                | |  |         |  | |
+                | |  `---------'  | |
+                | `---------------' |
+                |   _ GAME BOY      |
+   Up           | _| |_         ,-. | ----> Z
+Left/Right <--- ||_ O _|   ,-. "._,"|
+  Down          |  |_|    "._,"   A | ----> X
+                |    _  _    B      |
+                |   // //           |
+                |  // //    \\\\\\  | ----> Enter/BackSpace
+                |  `  `      \\\\\\ ,
+                |________...______,"
+```
+
 ## Known Issues
 * No audio support
 * Only works for GNU/Linux
