@@ -13,8 +13,8 @@ processor architecture, the instruction sequence of the emulated programms
 cannot be executed directly: either they are interpreted instruction by
 instruction, i.e. the fetch execute cycle is carried out in software, or
 it is translated into compatible instructions. The second method - often
-"dynarec" or called just-in-time (JIT) compiler - is used in many emulators because of
-its potentially higher speed.
+"dynarec" or called just-in-time (JIT) compiler - is used in many emulators
+because of its potentially higher speed.
 
 The instructions are translated mostly dynamically at runtime, since
 static analysis is difficult - e.g. by tracking all possible execution
@@ -78,15 +78,8 @@ in sequential pairs. Additionally, the Z80 has two more 16-bit index registers,
 an alternative set of each general purpose, accumulator and flags registers and
 a few more bits and pieces.
 
-The Game Boy CPU has one bank of general purpose 8-bit registers:
-* A
-* B
-* C
-* D
-* E
-* F
-* H
-* L
+The Game Boy CPU has one bank of general purpose 8-bit registers: `A`, `B`, `C`,
+`D`, `E`, `F`, `H` and `L`.
 
 While the CPU only has 8 bit registers, there are instructions that allow the
 game to read and write 16 bits (i.e. 2 bytes) at the same time. These registers
