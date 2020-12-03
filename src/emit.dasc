@@ -1,5 +1,8 @@
 #include "../src/emit.h"
 
+/* Configure the generator */
+#define DASM_FDEF static
+
 #include "../LuaJIT/dynasm/dasm_proto.h"
 #include "../LuaJIT/dynasm/dasm_x86.h"
 
