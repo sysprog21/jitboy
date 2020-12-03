@@ -79,12 +79,19 @@ an alternative set of each general purpose, accumulator and flags registers and
 a few more bits and pieces.
 
 The Game Boy CPU has one bank of general purpose 8-bit registers:
+* A
 * B
 * C
 * D
 * E
+* F
 * H
 * L
+
+While the CPU only has 8 bit registers, there are instructions that allow the
+game to read and write 16 bits (i.e. 2 bytes) at the same time. These registers
+are refered to as `AF` ("a" and "f" combined), `BC` ("b" and "c" combined),
+`DE` ("d" and "e" combinded), and finally `hl` ("h" and "l" combined).
 
 | Register | Size                | Purpose                           |
 |----------|---------------------|-----------------------------------|
@@ -540,8 +547,16 @@ Left/Right <--- ||_ O _|   ,-. "._,"|
 ```
 
 ## Known Issues
+
 * No audio support
 * Only works for GNU/Linux
+
+
+## Reference
+
+* [DMG-01: How to Emulate a Game Boy](https://blog.ryanlevick.com/DMG-01/public/book/)
+* [Emulation of Nintendo Game Boy (DMG-01)](https://raw.githubusercontent.com/Baekalfen/PyBoy/master/PyBoy.pdf)
+
 
 ## License
 
