@@ -10,6 +10,31 @@ static void usage(const char *exe)
     printf("usage: %s [-O LEVEL] file.gb\n", exe);
 }
 
+static void banner()
+{
+#define ENDL "\n"
+    printf(
+        "                _n_________________" ENDL
+        "                |_|_______________|_|" ENDL
+        "                |  ,-------------.  |" ENDL
+        "                | |  .---------.  | |" ENDL
+        "                | |  |         |  | |" ENDL
+        "                | |  |         |  | |" ENDL
+        "                | |  |         |  | |" ENDL
+        "                | |  |         |  | |" ENDL
+        "                | |  `---------'  | |" ENDL
+        "                | `---------------' |" ENDL
+        "                |   _ GAME BOY      |" ENDL
+        "   Up           | _| |_         ,-. | ----> Z" ENDL
+        "Left/Right <--- ||_ O _|   ,-. \"._,\"|" ENDL
+        "  Down          |  |_|    \"._,\"   A | ----> X" ENDL
+        "                |    _  _    B      |" ENDL
+        "                |   // //           |" ENDL
+        "                |  // //    \\\\\\\\\\\\  | ----> Enter/BackSpace" ENDL
+        "                |  `  `      \\\\\\\\\\\\ ," ENDL
+        "                |________...______,\"" ENDL);
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
@@ -48,6 +73,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    banner();
 #ifdef DEBUG
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_VERBOSE);
 #endif
