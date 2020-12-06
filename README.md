@@ -154,7 +154,7 @@ Each operation cycle will:
 
 Instruction length can be 1 to 4 bytes long depending on the specific instruction.
 Opcodes can be seen as 9 bits long, and will be encoded into 1 or 2 bytes. If the
-first byte is 0xCB, then the second byte would be one of the high 256 opcodes,
+first byte is `0xCB`, then the second byte would be one of the high 256 opcodes,
 otherwise, the first byte is one of the low 256 opcodes.
 
 For example, if the first byte is `0x43`, then the opcode of this instruction is
@@ -183,6 +183,38 @@ if the instruction need to do 16-bit ALU operation, additional 1 M-cycle may be
 needed to complete the operation.
 
 The processor also has a prefetch queue with the length of 1 byte.
+
+## Interrupts
+
+The Game Boy provides a total of five different interrupts:
+* `VBLANK`
+  - The `VBLANK` interrupt is displayed after each image displayed and marks the
+    beginning of the VBLANK phase in which the video memory can be freely accessed
+    for 4560 clock cycles.
+* `STAT`
+  - The `STAT` register (memory address `0xFF41`) changes between three states with
+    each displayed image line and to a fourth during the `VBLANK` phase. The `STAT`
+    interrupt can be triggered when these states change. Which state transitions are
+    affected can be selected.
+* `Timer`
+  - The timer interrupt is triggered when the timer register (`0xFF05`) overflows.
+    The rate at which the timer register is incremented can be selected so that the
+    timer interrupt occurs at a selectable rate of 16Hz, 64Hz, 256Hz or 1kHz.
+* Serial
+  - The serial transfer interrupt is triggered when a serial transfer is completed.
+* Joypad
+  - Every time one of the eight buttons is pressed, the joypad interrupt is triggered.
+
+If an interrupt occurs, it becomes pending and a bit is set in the interrupt flag
+register (`0xFF0F`). The interrupt enable register (`0xFFFF`) can be used to select
+which interrupts are active. The interrupt master enable flag can also all turn off
+interrupts. It can be manipulated with the instructions `DI` (Disable Interrupts),
+`EI` (Enable Interrupts) or `RETI` (Return from Interrupt).
+
+If an interrupt is pending, the corresponding bit in the Interrupt Enable Register
+and the Interrupt Master Enable flag are set, a handler function with a fixed start
+address between `0x40` (`VBLANK`) and `0x60` (Joypad) is called and further interrupts
+are prevented during the treatment using the Interrupt Master Enable .
 
 ## Memory and Memory Mapped I/O Devices
 
@@ -221,7 +253,30 @@ different interfaces for readable and writeable segments.
 | FEA0-FEFF | Not Usable                                                   |
 | FF00-FF7F | I/O Ports                                                    |
 | FF80-FFFE | High RAM (HRAM)                                              |
-| FFFF | Interrupt Enable Register                                         |
+| FFFF      | Interrupt Enable Register                                    |
+
+The addresses between `0x8000` and `0x9FFF` form the video RAM. It contains 8 × 8 pixel
+tiles of 16 bytes each, as well as foreground and background tile maps.
+
+The cartridge RAM is displayed between `0xA000` and `0xBFFF`. Depending on the MBC,
+several banks can be swapped. In some game cartridges, this memory is supplied by
+a battery and can therefore hold a game status even when the Game Boy is switched off.
+
+This is followed by 8kB of internal RAM (`0xC000` - `0xDFFF`), which is almost
+completely mirrored a second time in the address range `0xE000` - `0xFDFF`. However,
+these addresses are typically not used. The addresses `0xFE00` to `0xFE9F` contain the
+OAM memory. It contains the position, the graphic to be displayed, the grayscale
+palette used and the flags of all 40 sprites. The OAM memory can be simultaneously
+overwritten via DMA transfer.
+
+The hardware IO is controlled via the address range `0xFF00` to `0xFF7F`. It contains
+registers for controlling timers, serial transfers, DMA transfers, sound output and
+the map area to be displayed. This is followed by a further 127 bytes of main memory
+(`0xFF80` - `0xFFFE`), which can be read and written at any time. Since all other
+memory can neither be read nor written during a DMA transfer, a jump must be made to
+this memory area during such a transfer.
+
+The interrupt enable register occupies the highest address 0xFFFF.
 
 ### Jump Vectors in First ROM Bank
 
