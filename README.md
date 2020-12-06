@@ -531,6 +531,58 @@ FE ??		CP A, ??	; compare with a fixed value
 Instead, a modified HALT instruction can be inserted in the emulation, which
 waits for the corresponding display line to be drawn instead of an interrupt.
 
+## Graphics
+
+The pixels of the Game Boy display cannot be addressed individually, rather
+whole tiles of 8 × 8 pixels each are displayed. In addition to a foreground
+and background map (called `WIN` and `BG`) that contain the indices of the tiles
+to be displayed, up to 40 sprites can be freely positioned on the display.
+
+The image is built up line by line from top to bottom. The line currently being
+processed can be read out via register `LY` (0xFF44) and via the `STAT` Register
+(`0xFF41`) whether access to the graphics memory is currently possible.
+
+The size of the foreground and background map is 32 by 32 tiles, so that only
+a section is visible on the display. Via the register `SCX` (Scroll X, `0xFF43`),
+`SCY` (Scroll Y, `0xFF42`), `WX` (Window X, `0xFF4B`) and `WY` (Window Y, `0xFF4A`),
+the area to be displayed can be selected. By changing the visible area while the
+image is being built up, wave effects can be created on the display.
+
+![Determination of the brightness value of a background pixel](/assets/background-tiles.svg)
+
+The above figure shows an example of how the color of a background pixel comes about:
+First of all, the tile indices for the currently drawn image line are determined from
+the Background Tile Map; this can be selected from either `0x9800` or `0x9C00`.
+The tile data table is indexed from `0x8000` or `0x8800` via this index. The brightness
+value of the x-th pixel of the y-th tile line can then be built up from the x-th bit of
+the 2 * y-th and 2 * y + 1-th bytes. The structure for a foreground pixel is analogous.
+When displaying sprites, the OAM memory is used instead of a tilemap: It contains
+a 4-byte structure for each of the 40 sprites, which contains the tile index and some
+flags in addition to the screen position. These flags can be used to mirror the sprite,
+display it behind the background or with a different grayscale palette.
+
+Since the graphics output of the Game Boy takes place via special control registers
+as well as defined memory areas for tilemaps, the emulator must interpret these
+memory areas and generate the corresponding image pixel by pixel. It is not enough
+to interpret the memory once at the beginning of the `VBLANK` period and to output
+the image, since many games use the display timing to create graphic effects.
+If these are to be displayed correctly, the image must also be generated line by line
+in the emulator.
+
+After each executed instruction block, the `LY` (approx. Every 450 clock cycles) and
+the `STAT` register (approx. Every 80, 180, 190 clock cycles) are updated in the course
+of interrupt handling. If the `LY` register is incremented, the next image line can be
+drawn. After 144 lines have been drawn, at the beginning of the `VBLANK` period, the
+generated image can finally be passed on to the rendering thread for display. A separate
+rendering thread relieves the main thread of slow updating of the image texture and
+its display and halves the runtime of the main thread per frame.
+> With each processed line, the `STAT` register runs through three modes of different duration.
+
+The start of the `VBLANK` period is also used to limit the speed: If less than 1/60 s has
+passed since the last `VBLANK`, there is a correspondingly long wait before the execution
+is continued.
+
+
 ## Build
 
 `jitboy` relies on some 3rd party packages to be fully usable and to
