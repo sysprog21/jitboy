@@ -55,7 +55,7 @@ static void render_back(uint32_t *buf, uint8_t *addr_sp)
 
         y = addr_sp[0xff44];  // current line to update
         uint8_t *tile_map_ptr = addr_sp +
-                                ((addr_sp[0xff40] & 0x08) ? 0x9800 : 0x9c00) +
+                                ((addr_sp[0xff40] & 0x40) ? 0x9c00 : 0x9800) +
                                 (y - wy) / 8 * 32;
         uint8_t *tile_data_ptr =
             addr_sp + ((addr_sp[0xff40] & 0x10) ? 0x8000 : 0x9000);
