@@ -51,6 +51,7 @@ emulated by interpreting the address space.
 The main processor of Game Boy is a Sharp LR35902, a mix between the Z80 and
 the Intel 8080 that runs at 4.19 MHz. It is usually called as "GBZ80", however,
 it is not a Z80 compatible processor, nor a 8080 compatible processor.
+> CPU model is LR35902, and its core is SM83.
 
 The Z80 is an 8-bit microprocessor, meaning that each operation is natively
 performed on a single byte. The instruction set does have some 16-bit
