@@ -1,5 +1,12 @@
 #include "lcd.h"
 
+struct __attribute__((__packed__)) OAMentry {
+    uint8_t y;
+    uint8_t x;
+    uint8_t tile;
+    uint8_t flags;
+};
+
 static void render_back(uint32_t *buf, uint8_t *addr_sp)
 {
     uint32_t pal_grey[] = {0xffffff, 0xaaaaaa, 0x555555, 0x000000};
@@ -81,48 +88,62 @@ static void render_back(uint32_t *buf, uint8_t *addr_sp)
     /* TODO: prioritize sprite */
     if ((addr_sp[0xff40] & 0x02) == 0)
         return;
-    bool sprite_8x16_mode = (bool) addr_sp[0xff40] & 0x04;
+
+    struct OAMentry *objs[10];
+    int num_objs = 0;
+    uint8_t obj_tile_height = addr_sp[0xff40] & 0x04 ? 16 : 8;
     y = addr_sp[0xff44];
-    for (int sprite = 0; sprite < 40; ++sprite) {
-        int sposy = addr_sp[0xfe00 + 4 * sprite] - 16;
-        int sposx = addr_sp[0xfe01 + 4 * sprite] - 8;
 
-        /* TODO: support 8x16 sprites */
-        uint8_t flags = addr_sp[0xfe03 + 4 * sprite];
-        uint8_t tile_idx =
-            sprite_8x16_mode
-                ? ((flags & 0x40) ? addr_sp[0xfe02 + 4 * sprite] | 0x01
-                                  : addr_sp[0xfe02 + 4 * sprite] & ~0x01)
-                : addr_sp[0xfe02 + 4 * sprite];
-        uint8_t obp = ((flags & 0x10) ? addr_sp[0xff49] : addr_sp[0xff48]);
+    for (int i = 0; i < 40; i++) {
+        struct OAMentry *obj = (struct OAMentry *) (addr_sp + 0xfe00 + 4 * i);
 
-        if (sposy > y - 8 && sposy <= y) {
-            /* sprite is displayed in a line */
-            for (x = 0; x < 8; ++x) {
-                int px_x = ((flags & 0x20) ? 7 - x : x) + sposx;
-                int px_y = ((flags & 0x40) ? 7 - y + sposy : y - sposy);
+        if ((obj->y > 0) && (obj->y < 160)) {
+            if ((y >= obj->y - 16) && (y < obj->y - 16 + obj_tile_height)) {
+                uint8_t pos = num_objs;
 
-                int col =
-                    ((addr_sp[0x8000 + 16 * tile_idx + 2 * px_y] >> (7 - x)) &
-                     1) +
-                    (((addr_sp[0x8001 + 16 * tile_idx + 2 * px_y] >> (7 - x)) &
-                      1)
-                     << 1);
-
-                if (col != 0 && px_x >= 0 && px_x < 160) {
-                    if (!(flags & 0x80) || buf[y * 160 + px_x] == pal_grey[0])
-                        buf[y * 160 + px_x] = pal_grey[obp >> (col << 1) & 3];
+                /* Sprites are ordered in array from low priority to high
+                 * priority. So the low priority sprite will be drawn first,
+                 * meaning that the high priority one may overlap it.
+                 *
+                 * Priority of sprites follow the rule:
+                 * The smaller the X coordinate, the higher the priority. For
+                 * two objects with same X coordinate, the one with lower OAM
+                 * address has higher priority.
+                 */
+                while (pos > 0 && objs[pos - 1]->x <= obj->x) {
+                    if (pos < 10) {
+                        objs[pos] = objs[pos - 1];
+                    }
+                    pos--;
                 }
+
+                objs[pos] = obj;
+
+                num_objs++;
             }
         }
 
-        if (sprite_8x16_mode && sposy > y - 16 && sposy <= y - 8) {
-            tile_idx = ((flags & 0x40) ? addr_sp[0xfe02 + 4 * sprite] & ~0x01
-                                       : addr_sp[0xfe02 + 4 * sprite] | 0x01);
+        if (num_objs >= 10)
+            break;
+    }
+
+    for (int sprite = 0; sprite < num_objs; ++sprite) {
+        int sposy = objs[sprite]->y - 16;
+        int sposx = objs[sprite]->x - 8;
+
+        uint8_t flags = objs[sprite]->flags;
+        uint8_t tile_idx = (obj_tile_height == 16)
+                               ? ((flags & 0x40) ? objs[sprite]->tile | 0x01
+                                                 : objs[sprite]->tile & ~0x01)
+                               : objs[sprite]->tile;
+        uint8_t obp = ((flags & 0x10) ? addr_sp[0xff49] : addr_sp[0xff48]);
+
+        if (sposy > y - obj_tile_height && sposy <= y) {
             /* sprite is displayed in a line */
             for (x = 0; x < 8; ++x) {
                 int px_x = ((flags & 0x20) ? 7 - x : x) + sposx;
-                int px_y = ((flags & 0x40) ? 15 - y + sposy : y - 8 - sposy);
+                int px_y = ((flags & 0x40) ? obj_tile_height - 1 - y + sposy
+                                           : y - sposy);
 
                 int col =
                     ((addr_sp[0x8000 + 16 * tile_idx + 2 * px_y] >> (7 - x)) &
