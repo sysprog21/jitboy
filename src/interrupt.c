@@ -62,8 +62,8 @@ void update_ioregs(gb_state *state)
 
         mem[0xff44]++;
         mem[0xff44] %= 154;
-        
-	if (mem[0xff44] < 144)
+
+        if (mem[0xff44] < 144)
             update_line(mem);
 
         if (mem[0xff45] == mem[0xff44]) {
