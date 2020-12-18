@@ -25,10 +25,11 @@ BIN = build/jitboy
 OBJS = core.o gbz80.o lcd.o memory.o emit.o interrupt.o main.o optimize.o
 OBJS := $(addprefix $(OUT)/, $(OBJS))
 deps := $(OBJS:%.o=%.o.d)
+GIT_HOOKS := .git/hooks/applied
 
 all: CFLAGS += -O3
 all: LDFLAGS += -O3
-all: $(BIN)
+all: $(BIN) $(GIT_HOOKS)
 
 sanitizer: CFLAGS += -Og -g -fsanitize=thread
 sanitizer: LDFLAGS += -fsanitize=thread
@@ -37,6 +38,10 @@ sanitizer: $(BIN)
 debug: CFLAGS += -g -D DEBUG
 debug: DYNASMFLAGS += -D DEBUG
 debug: $(BIN)
+
+$(GIT_HOOKS):
+	@scripts/install-git-hooks
+	@echo
 
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBS)
