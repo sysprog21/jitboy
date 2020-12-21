@@ -171,6 +171,12 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
         }
 
         mem[addr] = value;
+    } else if (addr >= 0xff10 && addr <= 0xff3f) { /* audio update */
+        LOG_DEBUG("Memory write to %#" PRIx64 ", value is %#" PRIx64 "\n", addr,
+                  value);
+
+        channel_update(addr, value);
+        mem[addr] = value;
     } else {
         LOG_DEBUG("Memory write to %#" PRIx64 ", value is %#" PRIx64 "\n", addr,
                   value);

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "audio.h"
 #include "gbz80.h"
 #include "lcd.h"
 #include "memory.h"
@@ -17,6 +18,7 @@ typedef struct {
     gb_block compiled_blocks[MAX_ROM_BANKS][0x4000];  // bank, start address
     gb_block highmem_blocks[0x80];
     gb_lcd lcd;
+    gb_audio audio;
     bool draw_frame;
     unsigned next_frame_time;
 
