@@ -85,7 +85,7 @@ bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
     }
 
     if (init_io) {
-        /* init lcd */
+        /* both audio and lcd will be initialized if init_io is true*/
         if (!init_window(&vm->lcd))
             return false;
 
@@ -96,6 +96,8 @@ bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
         vm->frame_cnt = 0;
 
         vm->opt_level = opt_level;
+
+        audio_init(&vm->audio, &vm->memory);
     }
 
     return true;
@@ -105,6 +107,8 @@ bool run_vm(gb_vm *vm)
 {
     uint16_t prev_pc = vm->state.last_pc;
     vm->state.last_pc = vm->state.pc;
+
+    SDL_LockAudioDevice(vm->audio.dev);
 
     /* compile next block / get cached block */
     if (vm->state.pc < 0x4000) { /* first block */
@@ -153,6 +157,8 @@ bool run_vm(gb_vm *vm)
         LOG_DEBUG("finished\n");
         free_block(&temp);
     }
+
+    SDL_UnlockAudioDevice(vm->audio.dev);
 
     LOG_DEBUG("ioregs: STAT=%02x LY=%02x IF=%02x IE=%02x\n",
               vm->memory.mem[0xff41], vm->memory.mem[0xff44],
