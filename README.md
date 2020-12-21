@@ -627,8 +627,7 @@ objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
 
 ## Known Issues
 
-* No audio support
-* Only works for GNU/Linux
+* Only works for GNU/Linux due to ABI compatibility
 
 
 ## Reference
