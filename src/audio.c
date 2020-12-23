@@ -18,8 +18,8 @@
 
 /* Memory referenced to register start from 0xFF10, and should access at most
  * 0xFF3F */
-static uint8_t *audio_mem;
-static gb_audio *g_audio;
+static uint8_t *audio_mem = NULL;
+static gb_audio *g_audio = NULL;
 
 struct chan_len_ctr {
     unsigned load : 6;
@@ -368,6 +368,9 @@ static void chan_trigger(uint_fast8_t i)
 
 void channel_update(const uint16_t addr, const uint8_t val)
 {
+    if (!g_audio)
+        return;
+
     /* Find sound channel corresponding to register address. */
     uint_fast8_t i = (addr - 0xFF10) / 5;
 
@@ -509,10 +512,14 @@ void audio_init(gb_audio *audio, gb_memory *mem)
 
 void lock_audio_dev()
 {
+    if (!g_audio)
+        return;
     SDL_LockAudioDevice(g_audio->dev);
 }
 
 void unlock_audio_dev()
 {
+    if (!g_audio)
+        return;
     SDL_UnlockAudioDevice(g_audio->dev);
 }
