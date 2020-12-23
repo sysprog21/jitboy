@@ -175,8 +175,10 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
         LOG_DEBUG("Memory write to %#" PRIx64 ", value is %#" PRIx64 "\n", addr,
                   value);
 
+        lock_audio_dev();
         channel_update(addr, value);
         mem[addr] = value;
+        unlock_audio_dev();
     } else {
         LOG_DEBUG("Memory write to %#" PRIx64 ", value is %#" PRIx64 "\n", addr,
                   value);
