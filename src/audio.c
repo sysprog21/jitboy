@@ -19,6 +19,7 @@
 /* Memory referenced to register start from 0xFF10, and should access at most
  * 0xFF3F */
 static uint8_t *audio_mem;
+static gb_audio *g_audio;
 
 struct chan_len_ctr {
     unsigned load : 6;
@@ -497,10 +498,21 @@ void audio_init(gb_audio *audio, gb_memory *mem)
 
     /* reference */
     audio_mem = mem->mem + 0xFF10;
+    g_audio = audio;
 
     /* Initialize channels and samples */
     memset(chans, 0, sizeof(chans));
     chans[0].val = chans[1].val = -1;
 
     SDL_PauseAudioDevice(dev, 0);
+}
+
+void lock_audio_dev()
+{
+    SDL_LockAudioDevice(g_audio->dev);
+}
+
+void unlock_audio_dev()
+{
+    SDL_UnlockAudioDevice(g_audio->dev);
 }

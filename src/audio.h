@@ -20,5 +20,7 @@ typedef struct {
 
 void audio_init(gb_audio *audio, gb_memory *mem);
 void channel_update(const uint16_t addr, const uint8_t val);
+void lock_audio_dev();
+void unlock_audio_dev();
 
 #endif
