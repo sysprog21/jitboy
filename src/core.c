@@ -306,5 +306,7 @@ bool free_vm(gb_vm *vm)
     /* destroy window */
     deinit_window(&vm->lcd);
 
+    SDL_CloseAudioDevice(vm->audio.dev);
+
     return gb_memory_free(&vm->memory);
 }
