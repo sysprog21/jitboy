@@ -566,6 +566,7 @@ static bool inst_inc16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "ADD16"
+    | mov byte state->f_subtract, 0 
     switch (inst->op1) {
     case REG_HL:
         | and xH, 0xff
