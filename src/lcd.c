@@ -11,62 +11,58 @@ static void render_back(uint32_t *buf, uint8_t *addr_sp)
 {
     uint32_t pal_grey[] = {0xffffff, 0xaaaaaa, 0x555555, 0x000000};
 
-    /* point to tile map */
-    uint8_t *ptr_map = addr_sp;
-    if (addr_sp[0xff40] & 0x8)
-        ptr_map += 0x9c00;
-    else
-        ptr_map += 0x9800;
+    uint8_t x, y = addr_sp[0xff44];
 
-    /* Current line + SCROLL Y */
-    uint8_t y = addr_sp[0xff44] + addr_sp[0xff42];
-    /* SCROLL X */
-    int j = addr_sp[0xff43];
-    uint8_t x1 = j >> 3;
+    if (addr_sp[0xff40] & 0x01) {
+        uint8_t scy = addr_sp[0xff42], scx = addr_sp[0xff43];
 
-    /* Advance to row in tile map */
-    ptr_map += ((y >> 3) << 5) & 0x3ff;
-
-    int i = addr_sp[0xff44] * 160;  // 0;
-    j &= 7;
-    uint8_t x = 8 - j;
-    uint8_t shift_factor = ((uint8_t)(~j)) % 8;
-    for (; x < 168; x += 8) {
-        uint16_t tile_num = ptr_map[x1++ & 0x1f];
-        if (!(addr_sp[0xff40] & 0x10))
-            tile_num = 256 + (signed char) tile_num;
-        /* point to tile.
-         * Each tile is 8 * 8 * 2 = 128 bits = 16 bytes
+        /* set tile_map_ptr to the start position of correct scanline in tile
+         * map
          */
-        uint8_t *ptr_data = addr_sp + 0x8000 + (tile_num << 4);
-        /* point to row in tile depending on LY and SCROLL Y.
-         * Each row is 8 * 2 = 16 bits = 2 bytes
-         */
-        ptr_data += (y & 7) << 1;
-        for (; j < 8 && (x + j) < 168; shift_factor--, j++) {
-            uint8_t indx = ((ptr_data[0] >> shift_factor) & 1) |
-                           ((((ptr_data[1] >> shift_factor)) & 1) << 1);
-            /* if bit 0 in LCDC is not set, screen is blank */
-            buf[i] = (addr_sp[0xff40] & 0x01)
-                         ? pal_grey[(addr_sp[0xff47] >> (indx << 1)) & 3]
-                         : (unsigned) -1;
-            i++;
+        uint8_t *tile_map_ptr = addr_sp +
+                                ((addr_sp[0xff40] & 0x8) ? 0x9c00 : 0x9800) +
+                                ((y + scy) % 256) / 8 * 32;
+        /* set tile_data_ptr to the start position of correct tile bank */
+        uint8_t *tile_data_ptr =
+            addr_sp + ((addr_sp[0xff40] & 0x10) ? 0x8000 : 0x9000);
+        int i = y * 160;
+
+        for (x = 0; x < 160; ++x) {
+            /* index to first byte of the tile where the target pixel at by
+             * tile_map_ptr
+             */
+            uint8_t *tile =
+                tile_data_ptr +
+                16 * ((addr_sp[0xff40] & 0x10)
+                          ? tile_map_ptr[(((x + scx) % 256) / 8)]
+                          : (int8_t)
+                                tile_map_ptr[(((x + scx) % 256) / 8) & 0x1f]);
+
+            /* find the first byte in the two bytes which are used to present
+             * the target pixel in the tile
+             */
+            tile += (((y + scy) % 256) % 8 * 2);
+
+            /* the two bytes related to the target pixel can be used to
+             * calculate the mapping color
+             */
+            int col =
+                ((*tile >> ((7 - (((x + scx) % 256)) % 8))) & 1) +
+                (((*(tile + 1) >> ((7 - (((x + scx) % 256)) % 8))) & 1) << 1);
+
+            buf[i + x] = pal_grey[(addr_sp[0xff47] >> (col << 1)) & 3];
         }
-        j = 0;
-        shift_factor = 7;
     }
 
     if (addr_sp[0xff40] & 0x20) {
-        uint8_t wx = addr_sp[0xff4b] - 7;
-        uint8_t wy = addr_sp[0xff4a];
+        uint8_t wx = addr_sp[0xff4b] - 7, wy = addr_sp[0xff4a];
 
-        y = addr_sp[0xff44];  // current line to update
         uint8_t *tile_map_ptr = addr_sp +
                                 ((addr_sp[0xff40] & 0x40) ? 0x9c00 : 0x9800) +
                                 (y - wy) / 8 * 32;
         uint8_t *tile_data_ptr =
             addr_sp + ((addr_sp[0xff40] & 0x10) ? 0x8000 : 0x9000);
-        i = y * 160;
+        int i = y * 160;
 
         for (x = 0; x < 160; ++x) {
             if (x < wx || y < wy)
@@ -85,14 +81,12 @@ static void render_back(uint32_t *buf, uint8_t *addr_sp)
         }
     }
 
-    /* TODO: prioritize sprite */
     if ((addr_sp[0xff40] & 0x02) == 0)
         return;
 
     struct OAMentry *objs[10];
     int num_objs = 0;
     uint8_t obj_tile_height = addr_sp[0xff40] & 0x04 ? 16 : 8;
-    y = addr_sp[0xff44];
 
     for (int i = 0; i < 40; i++) {
         struct OAMentry *obj = (struct OAMentry *) (addr_sp + 0xfe00 + 4 * i);
@@ -128,8 +122,7 @@ static void render_back(uint32_t *buf, uint8_t *addr_sp)
     }
 
     for (int sprite = 0; sprite < num_objs; ++sprite) {
-        int sposy = objs[sprite]->y - 16;
-        int sposx = objs[sprite]->x - 8;
+        int sposy = objs[sprite]->y - 16, sposx = objs[sprite]->x - 8;
 
         uint8_t flags = objs[sprite]->flags;
         uint8_t tile_idx = (obj_tile_height == 16)
