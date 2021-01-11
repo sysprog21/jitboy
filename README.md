@@ -583,6 +583,19 @@ The start of the `VBLANK` period is also used to limit the speed: If less than 1
 passed since the last `VBLANK`, there is a correspondingly long wait before the execution
 is continued.
 
+## State saving
+
+Some Game Boy cartridges include RAM inside. When inserting a cartridge with RAM, it will get 
+mapped at `0xA000`-`0xBFFF` in Game Boy Memory Management Unit. The RAM in the cartridge is 
+stored in battery-backed memory, allowing to save game state like high score tables or 
+character's position. So even if the Game Boy is turned off, we can still return to the state 
+when opening it next time.
+
+When opening jitboy, the emulator will try to find a file containing the suffix `sav` to the 
+end of ROM name. If it exists, every byte in the file will be copied to the RAM banks. Since 
+one of these RAM banks would be chosen to mapped at `0xA000` to `0xBFFF` by MBC, the saving 
+state can be restored. When closing jitboy, contents in RAM banks should be copied to the file 
+with the name we mentioned before.
 
 ## Build
 

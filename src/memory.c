@@ -14,6 +14,12 @@
 #define LOG_DEBUG(...) fprintf(stdout, "DEBUG: " __VA_ARGS__)
 #endif
 
+void gb_memory_ram_flush(gb_memory *mem)
+{
+    memcpy(mem->ram_banks + mem->current_ram_bank * 0x2000, mem->mem + 0xa000,
+           0x2000);
+}
+
 static uint8_t get_joypad_state(gb_keys *keys, uint8_t value)
 {
     uint8_t result = 0;
@@ -31,8 +37,7 @@ static void gb_memory_change_ram_bank(gb_memory *mem, int bank)
         return;
 
     if (!mem->rtc_access) {
-        memcpy(mem->ram_banks + mem->current_ram_bank * 0x2000,
-               mem->mem + 0xa000, 0x2000);
+        gb_memory_ram_flush(mem);
     }
     memcpy(mem->mem + 0xa000, mem->ram_banks + bank * 0x2000, 0x2000);
     mem->rtc_access = false;
@@ -222,6 +227,16 @@ bool gb_memory_init(gb_memory *mem, const char *filename)
     mem->ram_banks = malloc(MAX_RAM_BANKS * 0x2000);
 
     mem->filename = filename;
+
+    if (filename) {
+        int len = strlen(filename) + 4;
+        mem->savname = malloc(len * sizeof(char));
+        if (mem->savname != NULL)
+            snprintf(mem->savname, len, "%ssav", filename);
+    } else {
+        mem->savname = NULL;
+    }
+
     mem->mbc = mem->mem[0x0147];
     mem->mbc_mode = 0;
     mem->mbc_data = 0;
@@ -236,6 +251,7 @@ bool gb_memory_init(gb_memory *mem, const char *filename)
 bool gb_memory_free(gb_memory *mem)
 {
     free(mem->ram_banks);
+    free(mem->savname);
 
     close(mem->fd);
 
@@ -254,7 +270,10 @@ void dump_header_info(gb_memory *mem)
     printf("+ Manufacturer: %s\n", mem->mem + 0x13f);
     printf("+ Cartridge type: %#2x\n", mem->mem[0x147]);
     printf("+ ROM size: %i KiB\n", 32 << mem->mem[0x148]);
-    printf("+ RAM size: %i KiB\n",
-           mem->mem[0x149] > 0 ? 1 << (mem->mem[0x149] * 2 - 1) : 0);
+    int ram_size = mem->mem[0x149] > 0 ? 1 << (mem->mem[0x149] * 2 - 1) : 0;
+    printf("+ RAM size: %i KiB\n", ram_size);
     printf("\n");
+
+    /* recording header info for some later usage */
+    mem->max_ram_banks_num = ram_size == 2 ? 1 : ram_size / 8;
 }

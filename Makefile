@@ -22,7 +22,7 @@ OUT ?= build
 SHELL_HACK := $(shell mkdir -p $(OUT))
 
 BIN = build/jitboy
-OBJS = core.o gbz80.o lcd.o memory.o emit.o interrupt.o main.o optimize.o audio.o
+OBJS = core.o gbz80.o lcd.o memory.o emit.o interrupt.o main.o optimize.o audio.o save.o
 OBJS := $(addprefix $(OUT)/, $(OBJS))
 deps := $(OBJS:%.o=%.o.d)
 GIT_HOOKS := .git/hooks/applied
