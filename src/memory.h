@@ -8,6 +8,8 @@ typedef struct {
     uint8_t *mem;
     uint8_t *ram_banks;
     const char *filename;
+    char *savname;
+    uint8_t max_ram_banks_num;
     int fd;
     enum {
         MBC_NONE = 0x00,
@@ -80,6 +82,9 @@ typedef struct {
         REASON_RET = 8
     } trap_reason;
 } gb_state;
+
+/* flush back external RAM(0xa000 - 0xbfff) to ram_banks buffer */
+void gb_memory_ram_flush(gb_memory *mem);
 
 /* emulate write through mbc */
 void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value);

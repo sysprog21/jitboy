@@ -3,6 +3,7 @@
 
 #include "core.h"
 #include "interrupt.h"
+#include "save.h"
 
 void free_block(gb_block *block)
 {
@@ -83,6 +84,9 @@ bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
         vm->highmem_blocks[i].exec_count = 0;
         vm->highmem_blocks[i].func = 0;
     }
+
+    if (!read_battery(vm->memory.savname, &vm->memory))
+        LOG_ERROR("Fail to read battery\n");
 
     if (init_io) {
         /* both audio and lcd will be initialized if init_io is true*/

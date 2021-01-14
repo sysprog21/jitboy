@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "core.h"
+#include "save.h"
 
 static void usage(const char *exe)
 {
@@ -164,6 +165,10 @@ int main(int argc, char *argv[])
 
 end_program:
     LOG_DEBUG("terminating ...\n");
+
+    if (!write_battery(vm->memory.savname, &vm->memory)) {
+        LOG_DEBUG("Failed to save battery\n");
+    }
 
     free_vm(vm);
     free(vm);
