@@ -833,54 +833,79 @@ static bool inst_scf(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "DAA"
+    
+    /* `tmp3` represent current status flag of Game Boy */
     | pushfq
     | pop tmp3
+
+    /* make two copy of register A */
     | mov tmp1b, A
+    | mov tmp2b, A
     | and xA, 0xff
-    
-    | test byte state->f_subtract, 1  /* SUBTRACT FLAG */
+ 
+    /* figure out if the previous operation is substract or add */ 
+    | test byte state->f_subtract, 1
     | jz >2
+    
+    /* when the previous operation is subtract */ 
+    /* if H flag is not set, jump to next branch */
     | test tmp3w, 0x10
     | jz >3
+    /* if H flag is set, A = A - 0x6 */
     | sub xA, 0x6
     | and xA, 0xff
+
+    /* if C flag is not set, jump to set final status flag */
     | 3:
     | test tmp3w, 0x1
     | jz >1
+    /* 	if C flag is set, A = A - 0x60 */
     | sub xA, 0x60
     | jmp >1
+
+    /* when addition condition */
     | 2:
+    /* if H flag is set, jump to set A, A = A + 0x6 */
     | test tmp3w, 0x10
     | jnz >2
-    | and tmp1b, 0xf
-    | cmp tmp1b, 0x9
+    /* or if lower 4 bits are greater than 0x9, A = A + 0x6 */
+    | and tmp1, 0x0f
+    | cmp tmp1, 0x9
     | jle >3
     | add xA, 0x6
     | jmp >3
     | 2:
-    | add A, 0x6
+    | add xA, 0x6
+
     | 3:
+    /* if C flag is set, jump to set A, A = A + 0x60 */
     | test tmp3w, 0x1
     | jnz >2
-    | cmp xA, 0x9f
+    /* or if higher 4 bits are greater than 0x9, A = A + 0x60 */
+    | and tmp2, 0x0f0
+    | cmp tmp2, 0x9f
     | jle >1
     | add xA, 0x60
     | jmp >1
     | 2:
     | add xA, 0x60
+
+    /* set our final status flag */
     | 1:
-    | and tmp3w, ~0x10
+    /* reset H flag and Z flag */
+    | and tmp3w, ~0x50
+    
+    /* set the C flag */
     | test xA, 0x100
     | jz >1
     | or tmp3w, 0x1
+    
+    /* if A is zero, set the Z flag */
     | 1:
     | cmp A, 0
-    | jz >1
+    | jnz >1
     | or tmp3w, 0x40
-    | jmp >2
     | 1:
-    | and tmp3w, ~0x40
-    | 2:
     | push tmp3
     | popfq
 
