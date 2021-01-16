@@ -1,3 +1,11 @@
+|.macro clean_flag, mask
+    | push rax  
+    | lahf 
+    | and ah, ~mask 
+    | sahf 
+    | pop rax    
+|.endmacro
+
 |.macro write_byte, addr, value
     | pushfq
     | push r0

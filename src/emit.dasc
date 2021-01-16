@@ -569,12 +569,20 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | mov byte state->f_subtract, 0 
     switch (inst->op1) {
     case REG_HL:
+        /* get and push zero flag status */
+        | pushfq
+        | pop tmp1
+        | and tmp1b, 0x40
+        | push tmp1       
+        
         | and xH, 0xff
         | and xL, 0xff
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
         | or tmp1, tmp2
+        /* save another copy for old HL to check half-carry */
+        | push tmp1
         switch (inst->op2) {
         case REG_BC:
             | and xB, 0xff
@@ -603,10 +611,25 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             return false;
         }
         | add tmp1w, tmp2w
+        | pop tmp3
         | pushfq
+        /* deal with half-carry flag for 16 bits add by tmp3 */
+        | xor tmp3w, tmp1w
+        | xor tmp3w, tmp2w
+        | and tmp3w, 0x1000
+        | shr tmp3w, 8
         | mov L, tmp1b
         | shr tmp1, 8
         | mov H, tmp1b
+        /* pop for status flag */
+        | pop tmp1
+        /* pop for zero flag status */
+        | pop tmp2
+        
+        | and tmp1b, ~0x50
+        | or tmp1b, tmp2b
+        | or tmp1b, tmp3b
+        | push tmp1
         | popfq
         break;
     case REG_SP:
@@ -615,6 +638,9 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             return false;
         }
         | add SP, (int8_t)inst->args[1]
+        /* set zero flag to zero */
+        | clean_flag 0x40
+
         break;
     default:
         LOG_ERROR("Invalid 1st operand to ADD16\n");
@@ -833,54 +859,79 @@ static bool inst_scf(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "DAA"
+    
+    /* tmp3 represent current status flag of Game Boy */
     | pushfq
     | pop tmp3
+
+    /* make two copy of register A */
     | mov tmp1b, A
+    | mov tmp2b, A
     | and xA, 0xff
-    
-    | test byte state->f_subtract, 1  /* SUBTRACT FLAG */
+ 
+    /* determine if the previous operation is substract or not */ 
+    | test byte state->f_subtract, 1
     | jz >2
+    
+    /* when the previous operation is subtract */ 
+    /* if H flag is not set, jump to next branch */
     | test tmp3w, 0x10
     | jz >3
+    /* if H flag is set, A = A - 0x6 */
     | sub xA, 0x6
     | and xA, 0xff
+
+    /* if C flag is not set, jump to set final status flag */
     | 3:
     | test tmp3w, 0x1
     | jz >1
+    /* if C flag is set, A = A - 0x60 */
     | sub xA, 0x60
     | jmp >1
+
+    /* when addition condition */
     | 2:
+    /* if H flag is set, jump to set A, A = A + 0x6 */
     | test tmp3w, 0x10
     | jnz >2
-    | and tmp1b, 0xf
-    | cmp tmp1b, 0x9
+    /* or if lower 4 bits are greater than 0x9, A = A + 0x6 */
+    | and tmp1, 0x0f
+    | cmp tmp1, 0x9
     | jle >3
     | add xA, 0x6
     | jmp >3
     | 2:
-    | add A, 0x6
+    | add xA, 0x6
+
     | 3:
+    /* if C flag is set, jump to set A, A = A + 0x60 */
     | test tmp3w, 0x1
     | jnz >2
-    | cmp xA, 0x9f
+    /* or if higher 4 bits are greater than 0x9, A = A + 0x60 */
+    | and tmp2, 0x0f0
+    | cmp tmp2, 0x9f
     | jle >1
     | add xA, 0x60
     | jmp >1
     | 2:
     | add xA, 0x60
+
+    /* set our final status flags */
     | 1:
-    | and tmp3w, ~0x10
+    /* reset H flag and Z flag */
+    | and tmp3w, ~0x50
+    
+    /* set the C flag */
     | test xA, 0x100
     | jz >1
     | or tmp3w, 0x1
+    
+    /* if A is zero, set the Z flag */
     | 1:
     | cmp A, 0
-    | jz >1
+    | jnz >1
     | or tmp3w, 0x40
-    | jmp >2
     | 1:
-    | and tmp3w, ~0x40
-    | 2:
     | push tmp3
     | popfq
 
