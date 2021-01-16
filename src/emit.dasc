@@ -776,6 +776,8 @@ static bool inst_ccf(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "CCF"
     | mov byte state->f_subtract, 0
     | cmc 
+    /* clean H flag */
+    | clean_flag 0x10
     *cycles += inst->cycles;
     return true;
 }
