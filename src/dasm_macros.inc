@@ -1,9 +1,17 @@
 |.macro clean_flag, mask
-    | push rax  
-    | lahf 
-    | and ah, ~mask 
-    | sahf 
-    | pop rax    
+    | push rax
+    | lahf
+    | and ah, ~mask
+    | sahf
+    | pop rax
+|.endmacro
+
+|.macro set_flag, mask
+    | push rax
+    | lahf
+    | or ah, mask
+    | sahf
+    | pop rax
 |.endmacro
 
 |.macro write_byte, addr, value

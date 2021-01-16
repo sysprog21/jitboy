@@ -718,6 +718,8 @@ static bool inst_and(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "AND"
     | mov byte state->f_subtract, 0
     | inst and, inst->op1, inst->op2
+    /* set H flag */
+    | set_flag 0x10
     *cycles += inst->cycles;
     return true;
 }
