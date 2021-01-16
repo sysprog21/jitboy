@@ -573,8 +573,8 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | pushfq
         | pop tmp1
         | and tmp1b, 0x40
-        | push tmp1       
-        
+        | push tmp1 
+
         | and xH, 0xff
         | and xL, 0xff
         | mov tmp2, xH
@@ -625,7 +625,7 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | pop tmp1
         /* pop for zero flag status */
         | pop tmp2
-        
+ 
         | and tmp1b, ~0x50
         | or tmp1b, tmp2b
         | or tmp1b, tmp3b
@@ -637,9 +637,27 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             LOG_ERROR("Invalid 2nd operand to ADD16\n");
             return false;
         }
+        /* calculate for carry flag */
+        | mov tmp1w, SP
+        | and tmp1, 0xff
+        | mov tmp2w, inst->args[1]
+        | and tmp2, 0xff
+        | add tmp1, tmp2
+        | and tmp1, 0x100
+        | shr tmp1, 8
+
+        /* for H flag, this instruction will deal with it */
         | add SP, (int8_t)inst->args[1]
-        /* set zero flag to zero */
-        | clean_flag 0x40
+
+        /* for Z flag, set to zero
+         * for C flag, set according to tmp1 we calculated before
+         */
+        | pushfq
+        | pop tmp2
+        | and tmp2, ~0x41
+        | or tmp2, tmp1
+        | push tmp2
+        | popfq
 
         break;
     default:
