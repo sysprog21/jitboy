@@ -692,6 +692,8 @@ static bool inst_cpl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "CPL"
     | mov byte state->f_subtract, 1
     | not A
+    /* set H flag */
+    | set_flag 0x10
     return true;
 }
 
