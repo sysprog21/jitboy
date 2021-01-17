@@ -402,7 +402,9 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "POP"
     switch (inst->op1) {
     case REG_AF:
-        | mov A, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov A, [aMem + tmp1]
         | mov tmp1b, [aMem + xSP]
         | inc SP
         | inc SP
@@ -428,19 +430,25 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | popfq
         break;
     case REG_BC:
-        | mov B, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov B, [aMem + tmp1]
         | mov C, [aMem + xSP]
         | inc SP
         | inc SP
         break;
     case REG_DE:
-        | mov D, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov D, [aMem + tmp1]
         | mov E, [aMem + xSP]
         | inc SP
         | inc SP
         break;
     case REG_HL:
-        | mov H, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov H, [aMem + tmp1] 
         | mov L, [aMem + xSP]
         | inc SP
         | inc SP
