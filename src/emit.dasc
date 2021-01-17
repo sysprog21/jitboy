@@ -249,7 +249,17 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     | add qword state->inst_count, *cycles + inst->cycles;
     | and xSP, 0xffff
-    | mov tmp1w, [aMem + xSP]
+    
+    /* access two bytes seperately */
+    | xor tmp1, tmp1
+    | xor tmp2, tmp2
+    | mov tmp3, xSP
+    | add tmp3w, 1
+    | mov tmp2b, [aMem + tmp3]
+    | mov tmp1b, [aMem + xSP]
+    | shl tmp2, 8
+    | add tmp1, tmp2
+
     | inc SP
     | inc SP
     | and tmp1, 0xffff
