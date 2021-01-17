@@ -249,7 +249,7 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     | add qword state->inst_count, *cycles + inst->cycles;
     | and xSP, 0xffff
-    
+ 
     /* access two bytes seperately */
     | xor tmp1, tmp1
     | xor tmp2, tmp2
@@ -458,7 +458,7 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     case REG_HL:
         | mov tmp1, xSP
         | add tmp1w, 1
-        | mov H, [aMem + tmp1] 
+        | mov H, [aMem + tmp1]
         | mov L, [aMem + xSP]
         | inc SP
         | inc SP
@@ -602,7 +602,7 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | pop tmp1
         | and tmp1b, 0x40
         | push tmp1 
-        
+
         | and xH, 0xff
         | and xL, 0xff
         | mov tmp2, xH
@@ -653,7 +653,7 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | pop tmp1
         /* pop for zero flag status */
         | pop tmp2
-        
+
         | and tmp1b, ~0x50
         | or tmp1b, tmp2b
         | or tmp1b, tmp3b
