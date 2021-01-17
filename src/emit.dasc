@@ -292,13 +292,22 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | mov H, inst->args[2];
             | mov L, inst->args[1];
         } else if (inst->op2 == MEM_8) {
+            /* add only the lower bytes for correct C/H status flag update */ 
+            | mov tmp1, xSP
+            | mov tmp2, (int8_t)inst->args[1]
+            | add tmp1b, tmp2b
+            | pushfq
+            
             | mov tmp1, xSP
             | add tmp1, (int8_t)inst->args[1]
-            | pushfq
             | mov L, tmp1b
             | shr tmp1, 8
             | mov H, tmp1b
             | popfq
+            /* set Z flag to zero */
+            | clean_flag 0x40
+            /* set N flag to 0 */
+            | mov byte state->f_subtract, 0
         } else {
             LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
@@ -321,6 +330,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         if (inst->op2 == REG_SP) {
             uint16_t addr = (uint16_t)(inst->args[1] + 256 * inst->args[2]);
             | mov word [aMem + addr], SP;
+            | mov tmp1, xSP
         } else {
             LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
