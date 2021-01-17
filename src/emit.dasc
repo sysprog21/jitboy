@@ -792,7 +792,75 @@ static bool inst_rr(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "RR"
     | mov byte state->f_subtract, 0
+    | pushfq
+
+    switch(inst->op1) {
+    case REG_A:
+        | mov tmp3, xA
+        break;
+    case REG_B:
+        | mov tmp3, xB
+        break;
+    case REG_C:
+        | mov tmp3, xC
+        break;
+    case REG_D:
+        | mov tmp3, xD
+        break;
+    case REG_E:
+        | mov tmp3, xE
+        break;
+    case REG_H:
+        | mov tmp3, xH
+        break;
+    case REG_L:
+        | mov tmp3, xL
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | mov tmp3b, [aMem + tmp1]
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+    | popfq
+    | rcr tmp3b, 1
+    | pushfq
+    /* warning: macro inst2 will use tmp1 and tmp2!
+     * that's why we use tmp3 to save the value
+     */
+    | inst2, mov, inst->op1, tmp3b
+
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | cmp tmp3b, 0
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+    
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rra(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RRA"
+    | mov byte state->f_subtract, 0
     | inst2, rcr, inst->op1, 1
+    
+    /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -801,7 +869,75 @@ static bool inst_rl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "RL"
     | mov byte state->f_subtract, 0
+    | pushfq
+
+    switch(inst->op1) {
+    case REG_A:
+        | mov tmp3, xA
+        break;
+    case REG_B:
+        | mov tmp3, xB
+        break;
+    case REG_C:
+        | mov tmp3, xC
+        break;
+    case REG_D:
+        | mov tmp3, xD
+        break;
+    case REG_E:
+        | mov tmp3, xE
+        break;
+    case REG_H:
+        | mov tmp3, xH
+        break;
+    case REG_L:
+        | mov tmp3, xL
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | mov tmp3b, [aMem + tmp1]
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+    | popfq
+    | rcl tmp3b, 1
+    | pushfq
+    /* warning: macro inst2 will use tmp1 and tmp2!
+     * that's why we use tmp3 to save the value
+     */
+    | inst2, mov, inst->op1, tmp3b
+
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | cmp tmp3b, 0
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+    
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rla(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RLA"
+    | mov byte state->f_subtract, 0
     | inst2, rcl, inst->op1, 1
+    
+    /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -810,7 +946,74 @@ static bool inst_rrc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "RRC"
     | mov byte state->f_subtract, 0
+
+    switch(inst->op1) {
+    case REG_A:
+        | mov tmp3, xA
+        break;
+    case REG_B:
+        | mov tmp3, xB
+        break;
+    case REG_C:
+        | mov tmp3, xC
+        break;
+    case REG_D:
+        | mov tmp3, xD
+        break;
+    case REG_E:
+        | mov tmp3, xE
+        break;
+    case REG_H:
+        | mov tmp3, xH
+        break;
+    case REG_L:
+        | mov tmp3, xL
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | mov tmp3b, [aMem + tmp1]
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+    
+    | ror tmp3b, 1
+    | pushfq
+    /* warning: macro inst2 will use tmp1 and tmp2!
+     * that's why we use tmp3 to save the value
+     */
+    | inst2, mov, inst->op1, tmp3b
+ 
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | cmp tmp3b, 0
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+    
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rrca(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RRCA"
+    | mov byte state->f_subtract, 0
     | inst2, ror, inst->op1, 1
+    
+     /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -819,7 +1022,74 @@ static bool inst_rlc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "RLC"
     | mov byte state->f_subtract, 0
+
+    switch(inst->op1) {
+    case REG_A:
+        | mov tmp3, xA
+        break;
+    case REG_B:
+        | mov tmp3, xB
+        break;
+    case REG_C:
+        | mov tmp3, xC
+        break;
+    case REG_D:
+        | mov tmp3, xD
+        break;
+    case REG_E:
+        | mov tmp3, xE
+        break;
+    case REG_H:
+        | mov tmp3, xH
+        break;
+    case REG_L:
+        | mov tmp3, xL
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | mov tmp3b, [aMem + tmp1]
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+    
+    | rol tmp3b, 1
+    | pushfq
+    /* warning: macro inst2 will use tmp1 and tmp2!
+     * that's why we use tmp3 to save the value
+     */
+    | inst2, mov, inst->op1, tmp3b
+ 
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | cmp tmp3b, 0
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rlca(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RLCA"
+    | mov byte state->f_subtract, 0
     | inst2, rol, inst->op1, 1
+    
+    /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -1222,16 +1492,32 @@ bool emit(gb_block *block, GList *inst)
             if (!inst_rr(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
+        case RRA:
+            if (!inst_rra(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
         case RL:
             if (!inst_rl(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RLA:
+            if (!inst_rla(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
         case RRC:
             if(!inst_rrc(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
+        case RRCA:
+            if(!inst_rrca(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
         case RLC:
             if (!inst_rlc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RLCA:
+            if (!inst_rlca(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
         case SBC:
