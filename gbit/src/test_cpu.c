@@ -1,14 +1,3 @@
-/*
- * Placeholder interface implementation for the testing framework.
- *
- * The four functions starting with mycpu_ should be provided by your CPU to be
- * tested.
- *
- * Additionally, this file contains an example implementation of the mock MMU
- * that maps the tester's instruction memory area read-only, and tracks all
- * write operations.
- */
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -32,42 +21,60 @@ static gb_vm *vm = NULL;
  */
 static uint16_t pc;
 static uint8_t flag;
+/* the block for flag loading is able to be cached */
+static gb_block *load_flag_block;
 
 void cleanup()
 {
+    free_block(load_flag_block);
     free_vm(vm);
     free(vm);
 }
 
-/*
- * Called once during startup. The area of memory pointed to by
- * tester_instruction_mem will contain instructions the tester will inject, and
- * should be mapped read-only at addresses [0,tester_instruction_mem_size).
- */
+static void build_load_flag_block(void)
+{
+    gb_block *block = &vm->compiled_blocks[2][0];
+    GList *instructions = NULL;
+
+    /* run the fake instruction for flag loading */
+    gbz80_inst *inst = g_new(gbz80_inst, 1);
+    *inst = inst_table[0xfd];
+    inst->args = NULL;
+    inst->address = -1;
+    instructions = g_list_prepend(instructions, inst);
+    instructions = g_list_reverse(instructions);
+
+    if (!optimize_cc(instructions)) {
+        exit(1);
+    }
+
+    bool result = emit(block, instructions);
+    g_list_free_full(instructions, g_free);
+
+    if (result == false) {
+        LOG_ERROR("Fail to compile instruction\n");
+        exit(1);
+    }
+
+    load_flag_block = block;
+}
+
 static void mycpu_init(size_t tester_instruction_mem_size,
                        uint8_t *tester_instruction_mem)
 {
     instruction_mem_size = tester_instruction_mem_size;
     instruction_mem = tester_instruction_mem;
 
-    /* ... Initialize your CPU here ... */
     vm = malloc(sizeof(gb_vm));
     if (!init_vm(vm, NULL, 0, false)) {
         LOG_ERROR("Fail to initialize\n");
         exit(1);
     }
-
-#ifdef DEBUG
-    SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_VERBOSE);
-#endif
+    build_load_flag_block();
 }
 
-/*
- * Resets the CPU state (e.g., registers) to a given state state.
- */
 static void mycpu_set_state(struct state *state)
 {
-    /* ... Load your CPU with state as described (e.g., registers) ... */
     memset(vm->memory.mem, 0xaa, 0x10000);
     memcpy(vm->memory.mem, instruction_mem, instruction_mem_size);
 
@@ -99,15 +106,11 @@ static void mycpu_set_state(struct state *state)
     vm->state.ime = state->interrupts_master_enabled;
 }
 
-/*
- * Query the current state of the CPU.
- */
 static void mycpu_get_state(struct state *state)
 {
     state->num_mem_accesses = num_mem_accesses;
     memcpy(state->mem_accesses, mem_accesses, sizeof(mem_accesses));
 
-    /* ... Copy your current CPU state into the provided struct ... */
     state->reg8.A = vm->state.a;
     state->reg8.B = vm->state.b;
     state->reg8.C = vm->state.c;
@@ -126,52 +129,18 @@ static void mycpu_get_state(struct state *state)
     num_mem_accesses = 0;
 }
 
-static void load_flag(void)
-{
-    gb_block *block = &vm->compiled_blocks[2][0];
-
-    GList *instructions = NULL;
-
-    /* run the fake instruction for flag load */
-    gbz80_inst *inst_last = g_new(gbz80_inst, 1);
-    *inst_last = inst_table[0xfd];
-    inst_last->args = NULL;
-    inst_last->address = -1;
-    instructions = g_list_prepend(instructions, inst_last);
-    instructions = g_list_reverse(instructions);
-
-    if (!optimize_cc(instructions)) {
-        exit(1);
-    }
-
-    bool result = emit(block, instructions);
-    g_list_free_full(instructions, g_free);
-
-    if (result == false) {
-        LOG_ERROR("Fail to compile instruction\n");
-        exit(1);
-    }
-
-    block->func(&vm->state);
-    free_block(block);
-}
-/*
- * Step a single instruction of the CPU. Returns the amount of cycles this took
- * (e.g., NOP should return 4).
- */
 static int mycpu_step(void)
 {
-    /* ... Execute a single instruction in your CPU ... */
     gb_block *block = &vm->compiled_blocks[1][0];
 
     GList *instructions = NULL;
 
-    /* run the fake instruction for flag reset */
-    gbz80_inst *inst_0 = g_new(gbz80_inst, 1);
-    *inst_0 = inst_table[0xfc];
-    inst_0->args = flag_args;
-    inst_0->address = -1;
-    instructions = g_list_prepend(instructions, inst_0);
+    /* run the fake instruction for flag setting */
+    gbz80_inst *inst_before = g_new(gbz80_inst, 1);
+    *inst_before = inst_table[0xfc];
+    inst_before->args = flag_args;
+    inst_before->address = -1;
+    instructions = g_list_prepend(instructions, inst_before);
 
     gbz80_inst *inst = g_new(gbz80_inst, 1);
 
@@ -192,7 +161,6 @@ static int mycpu_step(void)
         LOG_ERROR("Invalid Opcode! (%#x)\n", opcode);
         return false;
     }
-    LOG_DEBUG("inst: %i @%#x\n", inst->opcode, inst->address);
 
     instructions = g_list_prepend(instructions, inst);
     instructions = g_list_reverse(instructions);
@@ -260,8 +228,8 @@ static int mycpu_step(void)
         pc = ret;
     }
 
+    load_flag_block->func(&vm->state);
     free_block(block);
-    load_flag();
 
     return inst->cycles;
 }
@@ -272,12 +240,6 @@ struct tester_operations myops = {
     .get_state = mycpu_get_state,
     .step = mycpu_step,
 };
-
-
-/*
- * Example mock MMU implementation, mapping the tester's instruction memory
- * read-only at address 0, and logging all writes.
- */
 
 uint8_t mymmu_read(uint16_t address)
 {

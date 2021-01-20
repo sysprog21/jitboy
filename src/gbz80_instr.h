@@ -257,7 +257,7 @@ static gbz80_inst inst_table[] = {
   [0xfa] = {LD,    REG_A,  MEM_16, 0, 0,   3,     4, 4,   0},
   [0xfb] = {EI,    NONE,   NONE,   0, 0,   1,     1, 1,   INST_FLAG_ENDS_BLOCK},
 #ifdef GBIT
-  /* 0xfc, 0xfd are invalid opcode. I borrow it for status flag set and reset */
+  /* 0xfc, 0xfd are invalid opcode. I borrow them for status flag set and load */
   [0xfc] = {SET_F, NONE,   NONE,   0, 0,   0,     0, 0,   INST_FLAG_AFFECTS_CC},
   [0xfd] = {LD_F,  NONE,   NONE,   0, 0,   0,     0, 0,   INST_FLAG_USES_CC},
 #else
