@@ -63,7 +63,12 @@ typedef struct {
         JP_TARGET,
         JP_BWD,
         JP_FWD,
-        ERROR
+        ERROR,
+#ifdef GBIT
+        SET_F,
+        LD_F
+#else
+#endif
     } opcode;
     enum {
         NONE,

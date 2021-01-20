@@ -86,6 +86,11 @@ typedef struct {
 /* flush back external RAM(0xa000 - 0xbfff) to ram_banks buffer */
 void gb_memory_ram_flush(gb_memory *mem);
 
+#ifdef GBIT
+/* tell gbit if memory write happened by jit code */
+void gb_memory_ld16(gb_state *state, uint64_t addr, uint64_t value);
+#endif
+
 /* emulate write through mbc */
 void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value);
 

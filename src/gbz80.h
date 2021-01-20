@@ -10,5 +10,6 @@ bool compile(gb_block *block,
              int opt_level);
 
 bool optimize_block(GList **instructions, int opt_level);
+bool optimize_cc(GList *inst);
 
 #endif
