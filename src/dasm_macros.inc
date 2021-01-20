@@ -239,12 +239,14 @@
     |      opcode L, arg2
     ||     break;
     || case MEM_HL:
+    |      pushfq
     |      and xL, 0xff
     |      and xH, 0xff
     |      mov tmp2, xH
     |      shl tmp2, 8
     |      mov tmp1, xL
     |      add tmp1, tmp2
+    |      popfq
     |      opcode byte [aMem + tmp1], arg2
     ||     break;
     || default:

@@ -249,7 +249,17 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     | add qword state->inst_count, *cycles + inst->cycles;
     | and xSP, 0xffff
-    | mov tmp1w, [aMem + xSP]
+ 
+    /* access two bytes seperately */
+    | xor tmp1, tmp1
+    | xor tmp2, tmp2
+    | mov tmp3, xSP
+    | add tmp3w, 1
+    | mov tmp2b, [aMem + tmp3]
+    | mov tmp1b, [aMem + xSP]
+    | shl tmp2, 8
+    | add tmp1, tmp2
+
     | inc SP
     | inc SP
     | and tmp1, 0xffff
@@ -292,13 +302,22 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             | mov H, inst->args[2];
             | mov L, inst->args[1];
         } else if (inst->op2 == MEM_8) {
+            /* add only the lower bytes for correct C/H status flag update */ 
+            | mov tmp1, xSP
+            | mov tmp2, (int8_t)inst->args[1]
+            | add tmp1b, tmp2b
+            | pushfq
+            
             | mov tmp1, xSP
             | add tmp1, (int8_t)inst->args[1]
-            | pushfq
             | mov L, tmp1b
             | shr tmp1, 8
             | mov H, tmp1b
             | popfq
+            /* set Z flag to zero */
+            | clean_flag 0x40
+            /* set N flag to 0 */
+            | mov byte state->f_subtract, 0
         } else {
             LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
@@ -321,6 +340,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         if (inst->op2 == REG_SP) {
             uint16_t addr = (uint16_t)(inst->args[1] + 256 * inst->args[2]);
             | mov word [aMem + addr], SP;
+            | mov tmp1, xSP
         } else {
             LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
@@ -392,7 +412,9 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "POP"
     switch (inst->op1) {
     case REG_AF:
-        | mov A, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov A, [aMem + tmp1]
         | mov tmp1b, [aMem + xSP]
         | inc SP
         | inc SP
@@ -418,19 +440,25 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | popfq
         break;
     case REG_BC:
-        | mov B, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov B, [aMem + tmp1]
         | mov C, [aMem + xSP]
         | inc SP
         | inc SP
         break;
     case REG_DE:
-        | mov D, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov D, [aMem + tmp1]
         | mov E, [aMem + xSP]
         | inc SP
         | inc SP
         break;
     case REG_HL:
-        | mov H, [aMem + xSP + 1]
+        | mov tmp1, xSP
+        | add tmp1w, 1
+        | mov H, [aMem + tmp1]
         | mov L, [aMem + xSP]
         | inc SP
         | inc SP
@@ -625,7 +653,7 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | pop tmp1
         /* pop for zero flag status */
         | pop tmp2
- 
+
         | and tmp1b, ~0x50
         | or tmp1b, tmp2b
         | or tmp1b, tmp3b
@@ -637,28 +665,16 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             LOG_ERROR("Invalid 2nd operand to ADD16\n");
             return false;
         }
-        /* calculate for carry flag */
-        | mov tmp1w, SP
-        | and tmp1, 0xff
-        | mov tmp2w, inst->args[1]
-        | and tmp2, 0xff
-        | add tmp1, tmp2
-        | and tmp1, 0x100
-        | shr tmp1, 8
-
-        /* for H flag, this instruction will deal with it */
-        | add SP, (int8_t)inst->args[1]
-
-        /* for Z flag, set to zero
-         * for C flag, set according to tmp1 we calculated before
-         */
+        /* add only the lower bytes for correct C/H status flag update */
+        | mov tmp1, xSP
+        | mov tmp2, (int8_t)inst->args[1]
+        | add tmp1b, tmp2b
         | pushfq
-        | pop tmp2
-        | and tmp2, ~0x41
-        | or tmp2, tmp1
-        | push tmp2
+         
+        | add SP, (int8_t)inst->args[1]
         | popfq
-
+        /* set Z flag to zero */
+        | clean_flag 0x40
         break;
     default:
         LOG_ERROR("Invalid 1st operand to ADD16\n");
@@ -795,6 +811,69 @@ static bool inst_rr(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "RR"
     | mov byte state->f_subtract, 0
     | inst2, rcr, inst->op1, 1
+    | pushfq 
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | push tmp1
+
+    switch (inst->op1) {
+    case REG_A:
+        | cmp A, 0
+        break;
+    case REG_B:
+        | cmp B, 0
+        break;
+    case REG_C:
+        | cmp C, 0
+        break;
+    case REG_D:
+        | cmp D, 0
+        break;
+    case REG_E:
+        | cmp E, 0
+        break;
+    case REG_H:
+        | cmp H, 0
+        break;
+    case REG_L:
+        | cmp L, 0
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | cmp byte [aMem + tmp1], 0
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+
+    | pop tmp1
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+    
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rra(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RRA"
+    | mov byte state->f_subtract, 0
+    | inst2, rcr, inst->op1, 1
+    
+    /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -804,6 +883,69 @@ static bool inst_rl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "RL"
     | mov byte state->f_subtract, 0
     | inst2, rcl, inst->op1, 1
+    | pushfq 
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | push tmp1
+
+    switch (inst->op1) {
+    case REG_A:
+        | cmp A, 0
+        break;
+    case REG_B:
+        | cmp B, 0
+        break;
+    case REG_C:
+        | cmp C, 0
+        break;
+    case REG_D:
+        | cmp D, 0
+        break;
+    case REG_E:
+        | cmp E, 0
+        break;
+    case REG_H:
+        | cmp H, 0
+        break;
+    case REG_L:
+        | cmp L, 0
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | cmp byte [aMem + tmp1], 0
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+
+    | pop tmp1
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+    
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rla(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RLA"
+    | mov byte state->f_subtract, 0
+    | inst2, rcl, inst->op1, 1
+    
+    /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -813,6 +955,69 @@ static bool inst_rrc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "RRC"
     | mov byte state->f_subtract, 0
     | inst2, ror, inst->op1, 1
+    | pushfq 
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | push tmp1
+
+    switch (inst->op1) {
+    case REG_A:
+        | cmp A, 0
+        break;
+    case REG_B:
+        | cmp B, 0
+        break;
+    case REG_C:
+        | cmp C, 0
+        break;
+    case REG_D:
+        | cmp D, 0
+        break;
+    case REG_E:
+        | cmp E, 0
+        break;
+    case REG_H:
+        | cmp H, 0
+        break;
+    case REG_L:
+        | cmp L, 0
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | cmp byte [aMem + tmp1], 0
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+
+    | pop tmp1
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+ 
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rrca(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RRCA"
+    | mov byte state->f_subtract, 0
+    | inst2, ror, inst->op1, 1
+    
+     /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -822,6 +1027,69 @@ static bool inst_rlc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "RLC"
     | mov byte state->f_subtract, 0
     | inst2, rol, inst->op1, 1
+    | pushfq 
+    | pop tmp1
+    /* clean Z/H flag to zero */
+    | and tmp1, ~0x50
+    | push tmp1
+
+    switch (inst->op1) {
+    case REG_A:
+        | cmp A, 0
+        break;
+    case REG_B:
+        | cmp B, 0
+        break;
+    case REG_C:
+        | cmp C, 0
+        break;
+    case REG_D:
+        | cmp D, 0
+        break;
+    case REG_E:
+        | cmp E, 0
+        break;
+    case REG_H:
+        | cmp H, 0
+        break;
+    case REG_L:
+        | cmp L, 0
+        break;
+    case MEM_HL:
+        | and xL, 0xff
+        | and xH, 0xff
+        | mov tmp2, xH
+        | shl tmp2, 8
+        | mov tmp1, xL
+        | add tmp1, tmp2
+        | cmp byte [aMem + tmp1], 0
+        break;
+    default:
+        LOG_ERROR("Invalid operand.\n");
+        return false;
+    }
+
+    | pop tmp1
+    | jne >1
+    /* set Z flag to one */
+    | or tmp1, 0x40
+    | 1:
+    | push tmp1
+    | popfq
+
+    *cycles += inst->cycles;
+    return true;
+}
+
+static bool inst_rlca(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | print "RLCA"
+    | mov byte state->f_subtract, 0
+    | inst2, rol, inst->op1, 1
+    
+    /* set zero and half-carry flag to zero */  
+    | clean_flag 0x50
+    
     *cycles += inst->cycles;
     return true;
 }
@@ -875,6 +1143,8 @@ static bool inst_scf(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | print "SCF"
     | mov byte state->f_subtract, 0
     | stc
+    /* clean H flag */
+    | clean_flag 0x10
     *cycles += inst->cycles;
     return true;
 }
@@ -1224,16 +1494,32 @@ bool emit(gb_block *block, GList *inst)
             if (!inst_rr(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
+        case RRA:
+            if (!inst_rra(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
         case RL:
             if (!inst_rl(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RLA:
+            if (!inst_rla(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
         case RRC:
             if(!inst_rrc(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
+        case RRCA:
+            if(!inst_rrca(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
         case RLC:
             if (!inst_rlc(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case RLCA:
+            if (!inst_rlca(Dst, DATA(inst), &cycles))
                 goto exit_fail;
             break;
         case SBC:
