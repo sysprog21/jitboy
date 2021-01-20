@@ -15,7 +15,7 @@
 #endif
 
 #ifdef GBIT
-#include "../gbit/src/test_cpu.h"
+#include "../gbit_src/test_cpu.h"
 #endif
 
 void gb_memory_ram_flush(gb_memory *mem)

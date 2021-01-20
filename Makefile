@@ -34,6 +34,7 @@ JITBOY_OBJS := $(addprefix $(OUT)/, $(JITBOY_OBJS))
 
 GBIT_LIB = libgbit.so
 GBIT_LIB_OBJS = tester.o inputstate.o ref_cpu.o disassembler.o
+GBIT_LIB_C := gbit/lib/tester.c gbit/lib/inputstate.c gbit/lib/ref_cpu.c gbit/lib/disassembler.c
 GBIT_LIB_OBJS := $(addprefix $(GBIT_DIR)/, $(GBIT_LIB_OBJS))
 
 deps := $(OBJS:%.o=%.o.d)
@@ -63,6 +64,10 @@ $(GIT_HOOKS):
 	@scripts/install-git-hooks
 	@echo
 
+$(GBIT_LIB_C):
+	git submodule update --init
+	touch $@
+
 $(GBIT_LIB): $(GBIT_LIB_OBJS)
 	$(CC) $^ -o $@ -shared
 
@@ -75,7 +80,7 @@ $(GBIT_BIN): $(GBIT_LIB) $(OBJS) $(GBIT_OBJS)
 $(GBIT_DIR)/%.o: gbit/lib/%.c
 	$(CC) -O2 -Wall -Wextra -g -MMD -fPIC -c -o $@ $<
 
-$(GBIT_DIR)/%.o: gbit/src/%.c
+$(GBIT_DIR)/%.o: gbit_src/%.c
 	$(CC) $(CFLAGS) -MMD -fPIC -I. -c -o $@ $<
 
 $(OUT)/%.o: src/%.c

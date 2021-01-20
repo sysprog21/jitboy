@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../lib/tester.h"
+#include "../gbit/lib/tester.h"
 #include "src/core.h"
 #include "src/gbz80_instr.h"
 #include "test_cpu.h"

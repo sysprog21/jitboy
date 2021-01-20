@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../lib/tester.h"
+#include "../gbit/lib/tester.h"
 #include "test_cpu.h"
 
 extern struct tester_operations myops;

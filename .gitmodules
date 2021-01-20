@@ -1,3 +1,6 @@
 [submodule "LuaJIT"]
 	path = LuaJIT
 	url = https://github.com/LuaJIT/LuaJIT
+[submodule "gbit"]
+	path = gbit
+	url = https://github.com/koenk/gbit.git
