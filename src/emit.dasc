@@ -817,8 +817,27 @@ static bool inst_adc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 static bool inst_bit(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "BIT"
+    /* get C flag and save it */
+    | pushfq
+    | pop tmp1
+    | and tmp1b, 0x01
+    | push tmp1
+
     | mov byte state->f_subtract, 0
-    | bitinst test, inst->op1, inst->op2, 
+    | bitinst test, inst->op1, inst->op2,
+    
+    | pushfq
+    /* pop for status flag */
+    | pop tmp1
+    /* pop for C flag */
+    | pop tmp2
+    | and tmp1b, ~0x01
+    | or tmp1b, tmp2b 
+    /* set H flag to 1 */
+    | or tmp1b, 0x10
+    | push tmp1
+    | popfq
+
     *cycles += inst->cycles;
     return true;
 }
