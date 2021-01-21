@@ -14,10 +14,10 @@
     | pop rax
 |.endmacro
 
-#ifdef GBIT
+#ifdef INSTRUCTION_TEST
 || static void __restore_flag(uint64_t num) 
 || { 
-||     gbit_restore_flag((uint8_t) (num >> 8) & 0xff); 
+||     gbz80_restore_flag((uint8_t) (num >> 8) & 0xff); 
 || }
 
 |.macro restore_flag, value
@@ -46,6 +46,14 @@
     | pop r0
     | popfq
 |.endmacro
+
+|| static void gb_memory_ld16(gb_state *state, uint64_t addr, uint64_t value)
+|| {
+||    addr &= 0xffff;
+||    value &= 0xffff;
+||    gbz80_mmu_write(addr, value & 0xff);
+||    gbz80_mmu_write(addr + 1, (value >> 8) & 0xff);
+|| }
 
 |.macro ld16, addr, value
     | pushfq
@@ -271,7 +279,7 @@
     |      add tmp1, tmp2
     |      popfq
     |      opcode byte [aMem + tmp1]
-#ifdef GBIT
+#ifdef INSTRUCTION_TEST
     |      write_byte tmp1, [aMem + tmp1]
 #endif    
     ||     break;
@@ -314,7 +322,7 @@
     |      add tmp1, tmp2
     |      popfq
     |      opcode byte [aMem + tmp1], arg2
-#ifdef GBIT
+#ifdef INSTRUCTION_TEST
     |      write_byte tmp1, [aMem + tmp1]
 #endif
     ||     break;
@@ -1154,51 +1162,67 @@
     ||     switch (op2) {
     ||     case BIT_0:
     |          opcode byte [aMem + tmp1], prefix 0x01
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_1:
     |          opcode byte [aMem + tmp1], prefix 0x02
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_2:
     |          opcode byte [aMem + tmp1], prefix 0x04
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_3:
     |          opcode byte [aMem + tmp1], prefix 0x08
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_4:
     |          opcode byte [aMem + tmp1], prefix 0x10
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_5:
     |          opcode byte [aMem + tmp1], prefix 0x20
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_6:
     |          opcode byte [aMem + tmp1], prefix 0x40
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     case BIT_7:
     |          opcode byte [aMem + tmp1], prefix 0x80
+#ifdef INSTRUCTION_TEST
     |.if 'opcode' == 'and' or 'opcode' == 'or'
     |      write_byte tmp1, [aMem + tmp1]
     |.endif
+#endif
     ||         break;
     ||     default:
     ||         LOG_ERROR("Invalid 2nd operand to opcode.\n");

@@ -14,8 +14,8 @@
 #define LOG_DEBUG(...) fprintf(stdout, "DEBUG: " __VA_ARGS__)
 #endif
 
-#ifdef GBIT
-#include "../gbit_src/test_cpu.h"
+#ifdef INSTRUCTION_TEST
+#include "tests/instr_test.h"
 #endif
 
 void gb_memory_ram_flush(gb_memory *mem)
@@ -81,31 +81,19 @@ static void gb_memory_update_rtc_time(gb_memory *mem, int value)
     /* FIXME: implement RTC time */
 }
 
-#ifdef GBIT
-/* tell gbit if memory write happened by jit code */
-void gb_memory_ld16(gb_state *state, uint64_t addr, uint64_t value)
-{
-    addr &= 0xffff;
-    value &= 0xffff;
-
-    mymmu_write(addr, value & 0xff);
-    mymmu_write(addr + 1, (value >> 8) & 0xff);
-}
-#endif
-
 /* emulate write through mbc */
 void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
 {
     addr &= 0xffff;
     value &= 0xff;
 
-#ifdef GBIT
+#ifdef INSTRUCTION_TEST
     /* extra write for gbit*/
-    mymmu_write(addr, value);
+    gbz80_mmu_write(addr, value);
 #endif
 
     uint8_t *mem = state->mem->mem;
-#ifdef GBIT
+#ifdef INSTRUCTION_TEST
     mem[addr] = value;
 #else
     if (addr < 0x8000) {

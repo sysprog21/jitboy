@@ -3,7 +3,6 @@ CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter
 CFLAGS += -include src/common.h
 CFLAGS += -fno-pie
 LDFLAGS = -no-pie
-LIB_LDFLAGS = -Wl,-rpath="$(CURDIR)" -L. -lgbit
 LIBS = -lm
 
 # SDL2
@@ -20,27 +19,26 @@ else
 endif
 
 OUT ?= build
-GBIT_DIR ?= build/gbit
-SHELL_HACK := $(shell mkdir -p $(GBIT_DIR))
+SHELL_HACK := $(shell mkdir -p $(OUT))
 
 BIN = build/jitboy
-GBIT_BIN = build/gbit.out
+INSTR_TEST_BIN = build/instruction-test
 OBJS = core.o gbz80.o lcd.o memory.o emit.o interrupt.o optimize.o audio.o save.o
-OBJS := $(addprefix $(OUT)/, $(OBJS))
-GBIT_OBJS = gbit/gbit.o gbit/test_cpu.o
-GBIT_OBJS := $(addprefix $(OUT)/, $(GBIT_OBJS))
+
 JITBOY_OBJS = main.o
+JITBOY_OBJS += $(OBJS)
 JITBOY_OBJS := $(addprefix $(OUT)/, $(JITBOY_OBJS))
 
-GBIT_LIB = libgbit.so
-GBIT_LIB_OBJS = tester.o inputstate.o ref_cpu.o disassembler.o
-GBIT_LIB_C := gbit/lib/tester.c gbit/lib/inputstate.c gbit/lib/ref_cpu.c gbit/lib/disassembler.c
-GBIT_LIB_OBJS := $(addprefix $(GBIT_DIR)/, $(GBIT_LIB_OBJS))
+INSTR_TEST_OBJS = instr_test.o tester.o inputstate.o ref_cpu.o disassembler.o
+INSTR_TEST_OBJS += $(OBJS)
+INSTR_TEST_OBJS := $(addprefix instr-test-, $(INSTR_TEST_OBJS))
+INSTR_TEST_OBJS := $(addprefix $(OUT)/, $(INSTR_TEST_OBJS))
 
-deps := $(OBJS:%.o=%.o.d)
-deps += $(GBIT_OBJS:%.o=%.d)
+INSTR_TEST_LIB_C := gbit/lib/tester.c gbit/lib/inputstate.c \
+	gbit/lib/ref_cpu.c gbit/lib/disassembler.c
+
 deps += $(JITBOY_OBJS:%.o=%.o.d)
-deps += $(GBIT_LIB_OBJS:%.o=%.d)
+deps += $(INSTR_TEST_OBJS:%.o=%.o.d)
 
 GIT_HOOKS := .git/hooks/applied
 
@@ -56,38 +54,38 @@ debug: CFLAGS += -g -D DEBUG
 debug: DYNASMFLAGS += -D DEBUG
 debug: $(BIN)
 
-gbit: CFLAGS += -O3 -DGBIT
-gbit: LDFLAGS += -O3
-gbit: $(GBIT_LIB) $(GBIT_BIN) 
+check: CFLAGS += -O3 -DINSTRUCTION_TEST -I.
+check: LDFLAGS += -O3
+check: INSTR_TEST_PREFIX = instr-test-
+check: $(INSTR_TEST_BIN) 
+	$(INSTR_TEST_BIN) 
 
 $(GIT_HOOKS):
 	@scripts/install-git-hooks
 	@echo
 
-$(GBIT_LIB_C):
-	git submodule update --init
-	touch $@
-
-$(GBIT_LIB): $(GBIT_LIB_OBJS)
-	$(CC) $^ -o $@ -shared
-
-$(BIN): $(OBJS) $(JITBOY_OBJS)
+$(BIN): $(JITBOY_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $+ $(LIBS)
 
-$(GBIT_BIN): $(GBIT_LIB) $(OBJS) $(GBIT_OBJS) 
-	$(CC) $^ $(LDFLAGS) -o $@ $(LIB_LDFLAGS) $(LIBS)
+$(INSTR_TEST_BIN): $(INSTR_TEST_LIB_OBJS) $(INSTR_TEST_OBJS)
+	$(CC) $^ $(LDFLAGS) -o $@ $(LIBS)
 
-$(GBIT_DIR)/%.o: gbit/lib/%.c
-	$(CC) -O2 -Wall -Wextra -g -MMD -fPIC -c -o $@ $<
-
-$(GBIT_DIR)/%.o: gbit_src/%.c
-	$(CC) $(CFLAGS) -MMD -fPIC -I. -c -o $@ $<
-
-$(OUT)/%.o: src/%.c
+$(OUT)/instr-test-%.o: gbit/lib/%.c
 	$(CC) -o $@ -c $(CFLAGS) $< -MMD -MF $@.d
 
-$(OUT)/%.o: $(OUT)/%.c
+$(OUT)/instr-test-%.o: tests/%.c
 	$(CC) -o $@ -c $(CFLAGS) $< -MMD -MF $@.d
+
+.SECONDEXPANSION:
+$(OUT)/%.o: $$(subst $$(INSTR_TEST_PREFIX),,src/%.c)
+	$(CC) -o $@ -c $(CFLAGS) $< -MMD -MF $@.d
+
+$(OUT)/%.o: $$(subst $$(INSTR_TEST_PREFIX),,$(OUT)/%.c)
+	$(CC) -o $@ -c $(CFLAGS) $< -MMD -MF $@.d
+
+$(INSTR_TEST_LIB_C):
+	git submodule update --init
+	touch $@
 
 LuaJIT/src/host/minilua.c:
 	git submodule update --init
@@ -100,10 +98,8 @@ $(OUT)/emit.c: src/emit.dasc $(OUT)/minilua src/dasm_macros.inc
 	$(OUT)/minilua LuaJIT/dynasm/dynasm.lua $(DYNASMFLAGS) -I src -o $@ $<
 
 clean:
-	$(RM) $(BIN) $(GBIT_BIN) $(deps)
-	$(RM) $(JITBOY_OBJS) $(GBIT_OBJS) $(OBJS)
+	$(RM) $(BIN) $(INSTR_TEST_BIN) $(deps)
+	$(RM) $(JITBOY_OBJS) $(INSTR_TEST_OBJS)
 	$(RM) $(OUT)/minilua $(OUT)/emit.c
-	$(RM) $(GBIT_LIB)
-	$(RM) $(GBIT_LIB_OBJS) $(GBIT_LIBDIR)/*.d
 
 -include $(deps)
