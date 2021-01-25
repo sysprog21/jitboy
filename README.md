@@ -597,6 +597,31 @@ one of these RAM banks would be chosen to mapped at `0xA000` to `0xBFFF` by MBC,
 state can be restored. When closing jitboy, contents in RAM banks should be copied to the file 
 with the name we mentioned before.
 
+## Instruction compliance tests
+An instruction tester is used to validate the correctness of jitboy's instruction implementation.
+However, some limitations on jitboy cause problems to integrate with it. So we need to apply 
+some approaches to get over them.
+
+* Due to the JIT compilation, not each instruction is executed at one time. But this may 
+violate the expectation of instructions tester. If we want to do this on jitboy, we can't 
+always get the correct program counter on the JIT codes' return. Since jitboy cares about 
+the address after JMP/CALL type instructions only, we let the tester check this. Otherwise 
+we'll introduce an indirect layer for memory/register manipulation, using the program counter 
+that doesn't directly come from jitboy to pass the tester.
+* When executing the callback function `gbz80_set_state`, we'll adjust the contents in 
+`vm->memory.mem` to meet what the tester wants. So we can pass the tester correctly.
+* The tester will expect function `gbz80_mmu_write` is executed when we change the 
+content in memory. In our integration, `gbz80_mmu_write` will be called when executing 
+`gb_memory_write`. But jitboy may sometimes write memory by JIT codes and doesn't go 
+through `gb_memory_write`. So we reuse the macro `write_byte` that call `gb_memory_write` to 
+write the same value in the same position again.
+* For instructions that write two bytes, another macro `ld16` will be used for `gbz80_mmu_write` 
+calling.
+* To do code generating for flag setting and flag reloading which are required for the 
+instruction tester. Opcodes `0xfc` and `0xfd` which are invalid opcodes in original Game 
+Boy are diverted for the purpose. By mapping these opcodes to specific JIT codes, we can 
+set the state and also retrieve it back as the tester wishes.
+
 ## Build
 
 `jitboy` relies on some 3rd party packages to be fully usable and to
@@ -628,6 +653,10 @@ compilation. You can disassemble them by the command.
 objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
 ```
 
+To run instrution tester.
+```
+make check
+```
 ## Key Controls
 
 | Action            | Keyboard   |

@@ -1,5 +1,9 @@
 #include "../src/emit.h"
 
+#ifdef INSTRUCTION_TEST
+#include "tests/instr_test.h"
+#endif
+
 /* Configure the generator */
 #define DASM_FDEF static
 
@@ -124,6 +128,10 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | dec SP
         | and xSP, 0xffff
         | mov word [aMem + xSP], (uint16_t)(inst->address + inst->bytes)
+#ifdef INSTRUCTION_TEST
+        | mov tmp1, xSP
+        | ld16 tmp1, (inst->address + inst->bytes)
+#endif
     } else {
         | print "jmp from "
     }
@@ -341,6 +349,9 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
             uint16_t addr = (uint16_t)(inst->args[1] + 256 * inst->args[2]);
             | mov word [aMem + addr], SP;
             | mov tmp1, xSP
+#ifdef INSTRUCTION_TEST
+            | ld16 addr, tmp1
+#endif
         } else {
             LOG_ERROR("Invalid 2nd operand to LD16\n");
             return false;
@@ -380,24 +391,49 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
         | dec SP
         | mov [aMem + xSP + 1], A
         | mov [aMem + xSP], tmp3b
+#ifdef INSTRUCTION_TEST
+        | mov tmp1, xSP
+        | write_byte tmp1, tmp3
+        | inc tmp1
+        | write_byte tmp1, xA
+#endif
         break;
     case REG_BC:
         | dec SP
         | dec SP
         | mov [aMem + xSP + 1], B
         | mov [aMem + xSP], C
+#ifdef INSTRUCTION_TEST
+        | mov tmp1, xSP
+        | write_byte tmp1, xC
+        | inc tmp1
+        | write_byte tmp1, xB
+#endif
         break;
     case REG_DE:
         | dec SP
         | dec SP
         | mov [aMem + xSP + 1], D
         | mov [aMem + xSP], E
+#ifdef INSTRUCTION_TEST
+        | mov tmp1, xSP
+        | write_byte tmp1, xE
+        | inc tmp1
+        | write_byte tmp1, xD
+#endif
         break;
     case REG_HL:
         | dec SP
         | dec SP
         | mov [aMem + xSP + 1], H
         | mov [aMem + xSP], L
+#ifdef INSTRUCTION_TEST
+        | mov tmp1, xSP
+        | mov tmp2 , xL
+        | write_byte tmp1, tmp2
+        | inc tmp1
+        | write_byte tmp1, xH
+#endif
         break;
     default:
         LOG_ERROR("Invalid operand to PUSH\n");
@@ -781,8 +817,27 @@ static bool inst_adc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 static bool inst_bit(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 {
     | print "BIT"
+    /* get C flag and save it */
+    | pushfq
+    | pop tmp1
+    | and tmp1b, 0x01
+    | push tmp1
+
     | mov byte state->f_subtract, 0
-    | bitinst test, inst->op1, inst->op2, 
+    | bitinst test, inst->op1, inst->op2,
+    
+    | pushfq
+    /* pop for status flag */
+    | pop tmp1
+    /* pop for C flag */
+    | pop tmp2
+    | and tmp1b, ~0x01
+    | or tmp1b, tmp2b 
+    /* set H flag to 1 */
+    | or tmp1b, 0x10
+    | push tmp1
+    | popfq
+
     *cycles += inst->cycles;
     return true;
 }
@@ -1291,6 +1346,9 @@ static bool inst_swap(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | shl byte [aMem + tmp1], 4
         | shr tmp2b, 4
         | or [aMem + tmp1], tmp2b
+#ifdef INSTRUCTION_TEST
+        | write_byte, tmp1, [aMem + tmp1]
+#endif
         break;
     default:
         LOG_ERROR("Invalid operand to swap.\n");
@@ -1335,6 +1393,22 @@ static bool inst_stop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     return true;
 }
 
+#ifdef INSTRUCTION_TEST
+static bool inst_set_flag(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | mov ah, inst->args[0] 
+    | sahf
+    return true;
+}
+
+static bool inst_load_flag(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
+{
+    | lahf
+    | restore_flag r0
+    return true;
+}
+#endif
+
 bool emit(gb_block *block, GList *inst)
 {
     dasm_State *d;
@@ -1368,6 +1442,16 @@ bool emit(gb_block *block, GList *inst)
         }
 
         switch (DATA(inst)->opcode) {
+#ifdef INSTRUCTION_TEST        
+        case LD_F:
+            if (!inst_load_flag(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+        case SET_F:
+            if (!inst_set_flag(Dst, DATA(inst), &cycles))
+                goto exit_fail;
+            break;
+#endif
         case NOP:
             if (!inst_nop(Dst, DATA(inst), &cycles))
                 goto exit_fail;

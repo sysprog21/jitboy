@@ -14,6 +14,10 @@
 #define LOG_DEBUG(...) fprintf(stdout, "DEBUG: " __VA_ARGS__)
 #endif
 
+#ifdef INSTRUCTION_TEST
+#include "tests/instr_test.h"
+#endif
+
 void gb_memory_ram_flush(gb_memory *mem)
 {
     memcpy(mem->ram_banks + mem->current_ram_bank * 0x2000, mem->mem + 0xa000,
@@ -83,8 +87,15 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
     addr &= 0xffff;
     value &= 0xff;
 
-    uint8_t *mem = state->mem->mem;
+#ifdef INSTRUCTION_TEST
+    /* extra write for gbit*/
+    gbz80_mmu_write(addr, value);
+#endif
 
+    uint8_t *mem = state->mem->mem;
+#ifdef INSTRUCTION_TEST
+    mem[addr] = value;
+#else
     if (addr < 0x8000) {
         LOG_DEBUG("write to rom @address %#" PRIx64 ", value is %#" PRIx64 "\n",
                   addr, value);
@@ -189,6 +200,7 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
                   value);
         mem[addr] = value;
     }
+#endif
 }
 
 /* initialize memory layout and map file filename */
@@ -196,7 +208,7 @@ bool gb_memory_init(gb_memory *mem, const char *filename)
 {
     if (!filename) {
         mem->fd = -1;
-        mem->mem = mmap((void *) 0x1000000, 0x10000, PROT_READ | PROT_WRITE,
+        mem->mem = mmap((void *) 0x1000000, 0x10008, PROT_READ | PROT_WRITE,
                         MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
         if (mem->mem == MAP_FAILED) {
             LOG_ERROR("Map failed! (%i)\n", errno);

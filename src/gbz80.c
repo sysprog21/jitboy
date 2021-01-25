@@ -12,7 +12,7 @@ static gbz80_inst inst_table[] = {
   [0x04] = {INC,   REG_B,  NONE,   0, 0,   1,     1, 1,   INST_FLAG_USES_CC|INST_FLAG_AFFECTS_CC},
   [0x05] = {DEC,   REG_B,  NONE,   0, 0,   1,     1, 1,   INST_FLAG_USES_CC|INST_FLAG_AFFECTS_CC},
   [0x06] = {LD,    REG_B,  IMM8,   0, 0,   2,     2, 2,   0},
-  [0x07] = {RLCA,   REG_A,  NONE,   0, 0,   1,     1, 1,   INST_FLAG_AFFECTS_CC},
+  [0x07] = {RLCA,  REG_A,  NONE,   0, 0,   1,     1, 1,   INST_FLAG_AFFECTS_CC},
   [0x08] = {LD16,  MEM_16, REG_SP, 0, 0,   3,     5, 5,   0},
   [0x09] = {ADD16, REG_HL, REG_BC, 0, 0,   1,     2, 2,   INST_FLAG_AFFECTS_CC},
   [0x0a] = {LD,    REG_A,  MEM_BC, 0, 0,   1,     2, 2,   0},
@@ -257,8 +257,16 @@ static gbz80_inst inst_table[] = {
   [0xf9] = {LD16,  REG_SP, REG_HL, 0, 0,   1,     2, 2,   0},
   [0xfa] = {LD,    REG_A,  MEM_16, 0, 0,   3,     4, 4,   0},
   [0xfb] = {EI,    NONE,   NONE,   0, 0,   1,     1, 1,   INST_FLAG_ENDS_BLOCK},
+#ifdef INSTRUCTION_TEST
+  /* To do code generating for flag setting and flag reloading which are 
+   * required for the instruction tester. Opcodes `0xfc` and `0xfd` which 
+   * are invalid opcodes in original Game Boy are diverted for the purpose */
+  [0xfc] = {SET_F, NONE,   NONE,   0, 0,   0,     0, 0,   INST_FLAG_AFFECTS_CC},
+  [0xfd] = {LD_F,  NONE,   NONE,   0, 0,   0,     0, 0,   INST_FLAG_USES_CC},
+#else
   [0xfc] = {ERROR, NONE,   NONE,   0, 0,   0,     0, 0,   0},
   [0xfd] = {ERROR, NONE,   NONE,   0, 0,   0,     0, 0,   0},
+#endif
   [0xfe] = {CP,    REG_A,  IMM8,   0, 0,   2,     2, 2,   INST_FLAG_AFFECTS_CC},
   [0xff] = {RST,   NONE,   MEM_0x38, 0, 0, 1,     4, 4,   INST_FLAG_ENDS_BLOCK}
     /* clang-format off */
@@ -591,3 +599,89 @@ bool compile(gb_block *block,
 
     return result;
 }
+
+#ifdef INSTRUCTION_TEST
+struct instr_info compile_and_run(gb_block *block,
+                                  gb_memory *mem,
+                                  uint16_t pc,
+                                  uint8_t *flag_args)
+{
+    GList *instructions = NULL;
+
+    /* run the fake instruction for flag setting */
+    gbz80_inst *inst_before = g_new(gbz80_inst, 1);
+    *inst_before = inst_table[0xfc];
+    inst_before->args = flag_args;
+    inst_before->address = -1;
+    instructions = g_list_prepend(instructions, inst_before);
+
+    gbz80_inst *inst = g_new(gbz80_inst, 1);
+
+    uint8_t opcode = mem->mem[pc];
+    bool is_cb = false;
+    if (opcode != 0xcb) {
+        *inst = inst_table[opcode];
+    } else {
+        is_cb = true;
+        opcode = mem->mem[pc + 1];
+        *inst = cb_table[opcode];
+    }
+
+    inst->args = mem->mem + pc;
+    inst->address = pc;
+    uint8_t bytes = inst->bytes;
+    int cycles = inst->cycles;
+
+    if (inst->opcode == ERROR) {
+        LOG_ERROR("Invalid Opcode! (%#x)\n", opcode);
+        exit(1);
+    }
+
+    instructions = g_list_prepend(instructions, inst);
+    instructions = g_list_reverse(instructions);
+
+    if (!optimize_cc(instructions)) {
+        exit(1);
+    }
+
+    bool result = emit(block, instructions);
+    g_list_free_full(instructions, g_free);
+
+    if (result == false) {
+        LOG_ERROR("Fail to compile instruction\n");
+        exit(1);
+    }
+
+    return (struct instr_info){is_cb, opcode, bytes, cycles};
+}
+
+/* build_load_flag_block is used for generating JIT codes to load status flag.
+ * Because the JIT codes for flag loading doesn't need any arguments, so we can
+ * build it at the init stage and then cache it for reusing to avoid spending
+ * time on avoidable codegen.
+ */
+void build_load_flag_block(gb_block *block)
+{
+    GList *instructions = NULL;
+
+    /* run the fake instruction for flag loading */
+    gbz80_inst *inst = g_new(gbz80_inst, 1);
+    *inst = inst_table[0xfd];
+    inst->args = NULL;
+    inst->address = -1;
+    instructions = g_list_prepend(instructions, inst);
+    instructions = g_list_reverse(instructions);
+
+    if (!optimize_cc(instructions)) {
+        exit(1);
+    }
+
+    bool result = emit(block, instructions);
+    g_list_free_full(instructions, g_free);
+
+    if (result == false) {
+        LOG_ERROR("Fail to compile instruction\n");
+        exit(1);
+    }
+}
+#endif
