@@ -610,7 +610,7 @@ we'll introduce an indirect layer for memory/register manipulation, using the pr
 that doesn't directly come from jitboy to pass the tester.
 * When executing the callback function `gbz80_set_state`, we'll adjust the contents in 
 `vm->memory.mem` to meet what the tester wants. So we can pass the tester correctly.
-* The tester will expect function `gbz80_mmu_write` is executed when we change the 
+* The tester will expect function `gbz80_mmu_write` be executed when we change the
 content in memory. In our integration, `gbz80_mmu_write` will be called when executing 
 `gb_memory_write`. But jitboy may sometimes write memory by JIT codes and doesn't go 
 through `gb_memory_write`. So we reuse the macro `write_byte` that call `gb_memory_write` to 
@@ -653,7 +653,7 @@ compilation. You can disassemble them by the command.
 objdump -D -b binary -mi386 -Mx86-64 /tmp/jitcode?
 ```
 
-To run instrution tester.
+To run instruction tester.
 ```
 make check
 ```
