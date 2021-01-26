@@ -3,7 +3,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  test_x86:
+  jit_x86_64:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
