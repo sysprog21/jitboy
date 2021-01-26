@@ -29,7 +29,7 @@ JITBOY_OBJS = main.o
 JITBOY_OBJS += $(OBJS)
 JITBOY_OBJS := $(addprefix $(OUT)/, $(JITBOY_OBJS))
 
-INSTR_TEST_OBJS = instr_test.o tester.o inputstate.o ref_cpu.o disassembler.o
+INSTR_TEST_OBJS = tester.o inputstate.o ref_cpu.o disassembler.o instr_test.o
 INSTR_TEST_OBJS += $(OBJS)
 INSTR_TEST_OBJS := $(addprefix instr-test-, $(INSTR_TEST_OBJS))
 INSTR_TEST_OBJS := $(addprefix $(OUT)/, $(INSTR_TEST_OBJS))
