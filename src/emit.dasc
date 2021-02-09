@@ -369,7 +369,7 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
     case REG_AF:
         | pushfq
         | pop tmp1
-        | mov tmp3, 0
+        | xor tmp3, tmp3
         // CF
         | mov tmp2, tmp1
         | and tmp2, 0x1

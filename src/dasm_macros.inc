@@ -202,21 +202,21 @@
     | push r14
     | push r15
     | mov aState, rArg1
-    | mov xA, 0
+    | xor xA, xA // mov xA, 0
     | mov A, state->a
-    | mov xB, 0
+    | xor xB, xB // mov xB, 0
     | mov B, state->b
-    | mov xC, 0
+    | xor xC, xC // mov xC, 0
     | mov C, state->c
-    | mov xD, 0
+    | xor xD, xD // mov xD, 0
     | mov D, state->d
-    | mov xE, 0
+    | xor xE, xE // mov xE, 0
     | mov E, state->e
-    | mov xH, 0
+    | xor xH, xH // mov xH, 0
     | mov H, state->h
-    | mov xL, 0
+    | xor xL, xL // mov xL, 0
     | mov L, state->l
-    | mov xSP, 0
+    | xor xSP, xSP // mov xSP, 0
     | mov SP, state->_sp
     | mov tmp1, state->mem
     | mov aMem, [tmp1 + offsetof(gb_memory, mem)]
@@ -364,7 +364,7 @@
     |          opcode A, [aMem + (0xff00 + inst->args[1])]
     ||         break;
     ||     case MEM_C:
-    |          and xC, 0xff
+    |          movzx xC, C // and xC, 0xff
     |          opcode A, [aMem + xC + 0xff00]
     ||         break;
     ||     case MEM_HL:
@@ -380,8 +380,8 @@
     ||         break;
     ||     case MEM_BC:
     |          pushfq
-    |          and xC, 0xff
-    |          and xB, 0xff
+    |          movzx xC, C // and xC, 0xff
+    |          movzx xB, B // and xB, 0xff
     |          mov tmp2, xB
     |          shl tmp2, 8
     |          mov tmp1, xC
@@ -391,8 +391,8 @@
     ||         break;
     ||     case MEM_DE:
     |          pushfq
-    |          and xE, 0xff
-    |          and xD, 0xff
+    |          movzx xE, E // and xE, 0xff
+    |          movzx xD, D // and xD, 0xff
     |          mov tmp2, xD
     |          shl tmp2, 8
     |          mov tmp1, xE
@@ -801,8 +801,8 @@
     ||     break;
     || case MEM_BC:
     ||     if (op2 == REG_A) {
-    |          and xC, 0xff
-    |          and xB, 0xff
+    |          movzx xC, C // and xC, 0xff
+    |          movzx xB, B // and xB, 0xFF
     |          mov tmp2, xB
     |          shl tmp2, 8
     |          mov tmp1, xC
@@ -819,8 +819,8 @@
     ||     break;
     || case MEM_DE:
     ||     if (op2 == REG_A) {
-    |          and xE, 0xff
-    |          and xD, 0xff
+    |          movzx xE, E // and xE, 0xff
+    |          movzx xD, D // and xD, 0xff
     |          mov tmp2, xD
     |          shl tmp2, 8
     |          mov tmp1, xE
@@ -873,8 +873,8 @@
     ||     break;
     || case MEM_INC_DE:
     ||     if (op2 == MEM_INC_HL) {
-    |          and xE, 0xff
-    |          and xD, 0xff
+    |          movzx xE, E // and xE, 0xff
+    |          movzx xD, D // and xD, 0xff
     |          movzx xL, L // and xL, 0xff
     |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xD
@@ -910,7 +910,7 @@
     ||     break;
     || case MEM_C:
     ||     if (op2 == REG_A) {
-    |          and xC, 0xff
+    |          movzx xC, C // and xC, 0xff
     |          add xC, 0xff00
     |          write_byte xC, xA
     ||     } else {
