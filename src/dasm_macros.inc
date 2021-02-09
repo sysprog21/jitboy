@@ -271,8 +271,8 @@
     ||     break;
     || case MEM_HL:
     |      pushfq
-    |      and xL, 0xff
-    |      and xH, 0xff
+    |      movzx xL, L // and xL, 0xff
+    |      movzx xH, H // and xH, 0xff
     |      mov tmp2, xH
     |      shl tmp2, 8
     |      mov tmp1, xL
@@ -314,8 +314,8 @@
     ||     break;
     || case MEM_HL:
     |      pushfq
-    |      and xL, 0xff
-    |      and xH, 0xff
+    |      movzx xL, L // and xL, 0xff
+    |      movzx xH, H // and xH, 0xff
     |      mov tmp2, xH
     |      shl tmp2, 8
     |      mov tmp1, xL
@@ -369,8 +369,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -406,8 +406,8 @@
     ||         break;
     ||     }
     ||     case MEM_DEC_HL:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -419,8 +419,8 @@
     |          mov H, tmp1b
     ||         break;
     ||     case MEM_INC_HL:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -461,8 +461,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -503,8 +503,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -545,8 +545,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -587,8 +587,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -629,8 +629,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -671,8 +671,8 @@
     ||         break;
     ||     case MEM_HL:
     |          pushfq
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -691,8 +691,8 @@
     || case MEM_HL:
     ||     switch (op2) {
     ||     case REG_A:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -704,8 +704,8 @@
     |.endif    
     ||         break;
     ||     case REG_B:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -717,8 +717,8 @@
     |.endif    
     ||         break;
     ||     case REG_C:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -730,8 +730,8 @@
     |.endif    
     ||         break;
     ||     case REG_D:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -743,8 +743,8 @@
     |.endif    
     ||         break;
     ||     case REG_E:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -756,8 +756,8 @@
     |.endif    
     ||         break;
     ||     case REG_H:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -769,8 +769,8 @@
     |.endif    
     ||         break;
     ||     case REG_L:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -782,8 +782,8 @@
     |.endif    
     ||         break;
     ||     case IMM8:
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -837,8 +837,8 @@
     ||     break;
     || case MEM_DEC_HL:
     ||     if (op2 == REG_A) {
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -855,8 +855,8 @@
     ||     break;
     || case MEM_INC_HL:
     ||     if (op2 == REG_A) {
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xH
     |          shl tmp2, 8
     |          mov tmp1, xL
@@ -875,8 +875,8 @@
     ||     if (op2 == MEM_INC_HL) {
     |          and xE, 0xff
     |          and xD, 0xff
-    |          and xL, 0xff
-    |          and xH, 0xff
+    |          movzx xL, L // and xL, 0xff
+    |          movzx xH, H // and xH, 0xff
     |          mov tmp2, xD
     |          shl tmp2, 8
     |          mov tmp1, xE
@@ -1153,8 +1153,8 @@
     ||     }
     ||     break;
     || case MEM_HL:
-    |      and xL, 0xff
-    |      and xH, 0xff
+    |      movzx xL, L // and xL, 0xff
+    |      movzx xH, H // and xH, 0xff
     |      mov tmp2, xH
     |      shl tmp2, 8
     |      mov tmp1, xL
