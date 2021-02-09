@@ -126,7 +126,7 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | print "call from "
         | dec SP
         | dec SP
-        | and xSP, 0xffff
+        | movzx xSP, SP // and xSP, 0xFFFF
         | mov word [aMem + xSP], (uint16_t)(inst->address + inst->bytes)
 #ifdef INSTRUCTION_TEST
         | mov tmp1, xSP
@@ -256,7 +256,7 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     }
 
     | add qword state->inst_count, *cycles + inst->cycles;
-    | and xSP, 0xffff
+    | movzx xSP, SP // and xSP, 0xFFFF
  
     /* access two bytes seperately */
     | xor tmp1, tmp1
@@ -270,7 +270,7 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     | inc SP
     | inc SP
-    | and tmp1, 0xffff
+    | movzx tmp1, tmp1w //and tmp1, 0xffff
     | bt_ret
     | return tmp1
 
@@ -337,7 +337,7 @@ static bool inst_ld16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         } else if (inst->op2 == REG_HL) {
             | mov xSP, xH
             | shl xSP, 8
-            | and xL, 0xff
+            | movzx xL, L //and xL, 0xff
             | or xSP, xL
         } else {
             LOG_ERROR("Invalid 2nd operand to LD16\n");
@@ -639,8 +639,8 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | and tmp1b, 0x40
         | push tmp1 
 
-        | and xH, 0xff
-        | and xL, 0xff
+        | movzx xH, H // and xH, 0xff
+        | movzx xL, L // and xL, 0xFF
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
@@ -649,16 +649,16 @@ static bool inst_add16(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | push tmp1
         switch (inst->op2) {
         case REG_BC:
-            | and xB, 0xff
-            | and xC, 0xff
+            | movzx xB, B // and xB, 0xff
+            | movzx xC, C // and xC, 0xff
             | mov tmp3, xB
             | shl tmp3, 8
             | mov tmp2, xC
             | or tmp2, tmp3
             break;
         case REG_DE:
-            | and xD, 0xff
-            | and xE, 0xff
+            | movzx xD, D // and xD, 0xff
+            | movzx xE, E // and xE, 0xff
             | mov tmp3, xD
             | shl tmp3, 8
             | mov tmp2, xE
@@ -895,8 +895,8 @@ static bool inst_rr(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | cmp L, 0
         break;
     case MEM_HL:
-        | and xL, 0xff
-        | and xH, 0xff
+        | movzx xL, L // and xL, 0xff
+        | movzx xH, H // and xH, 0xff
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
@@ -967,8 +967,8 @@ static bool inst_rl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | cmp L, 0
         break;
     case MEM_HL:
-        | and xL, 0xff
-        | and xH, 0xff
+        | movzx xL, L // and xL, 0xff
+        | movzx xH, H // and xH, 0xff
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
@@ -1039,8 +1039,8 @@ static bool inst_rrc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | cmp L, 0
         break;
     case MEM_HL:
-        | and xL, 0xff
-        | and xH, 0xff
+        | movzx xL, L // and xL, 0xff
+        | movzx xH, H // and xH, 0xff
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
@@ -1111,8 +1111,8 @@ static bool inst_rlc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | cmp L, 0
         break;
     case MEM_HL:
-        | and xL, 0xff
-        | and xH, 0xff
+        | movzx xL, L // and xL, 0xff
+        | movzx xH, H // and xH, 0xff
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
@@ -1216,7 +1216,7 @@ static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     /* make two copy of register A */
     | mov tmp1b, A
     | mov tmp2b, A
-    | and xA, 0xff
+    | movzx xA, A // and xA, 0xff
  
     /* determine if the previous operation is substract or not */ 
     | test byte state->f_subtract, 1
@@ -1228,7 +1228,7 @@ static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | jz >3
     /* if H flag is set, A = A - 0x6 */
     | sub xA, 0x6
-    | and xA, 0xff
+    | movzx xA, A // and xA, 0xff
 
     /* if C flag is not set, jump to set final status flag */
     | 3:
@@ -1336,8 +1336,8 @@ static bool inst_swap(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | or L, tmp1b
         break;
     case MEM_HL:
-        | and xL, 0xff
-        | and xH, 0xff
+        | movzx xL, L // and xL, 0xff
+        | movzx xH, H // and xH, 0xff
         | mov tmp2, xH
         | shl tmp2, 8
         | mov tmp1, xL
