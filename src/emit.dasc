@@ -124,8 +124,7 @@ static bool inst_jp(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     if (inst->opcode == CALL || inst->opcode == RST) {
         | print "call from "
-        | dec SP
-        | dec SP
+        | sub SP, 2
         | movzx xSP, SP // and xSP, 0xFFFF
         | mov word [aMem + xSP], (uint16_t)(inst->address + inst->bytes)
 #ifdef INSTRUCTION_TEST
@@ -268,8 +267,7 @@ static bool inst_ret(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     | shl tmp2, 8
     | add tmp1, tmp2
 
-    | inc SP
-    | inc SP
+    | add SP, 2
     | movzx tmp1, tmp1w //and tmp1, 0xffff
     | bt_ret
     | return tmp1
@@ -387,8 +385,7 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
         | and tmp2, 0x01
         | shl tmp2, 6
         | or tmp3, tmp2
-        | dec SP
-        | dec SP
+        | sub SP, 2
         | mov [aMem + xSP + 1], A
         | mov [aMem + xSP], tmp3b
 #ifdef INSTRUCTION_TEST
@@ -399,8 +396,7 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
 #endif
         break;
     case REG_BC:
-        | dec SP
-        | dec SP
+        | sub SP, 2
         | mov [aMem + xSP + 1], B
         | mov [aMem + xSP], C
 #ifdef INSTRUCTION_TEST
@@ -411,8 +407,7 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
 #endif
         break;
     case REG_DE:
-        | dec SP
-        | dec SP
+        | sub SP, 2
         | mov [aMem + xSP + 1], D
         | mov [aMem + xSP], E
 #ifdef INSTRUCTION_TEST
@@ -423,8 +418,7 @@ static bool inst_push(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles) {
 #endif
         break;
     case REG_HL:
-        | dec SP
-        | dec SP
+        | sub SP, 2
         | mov [aMem + xSP + 1], H
         | mov [aMem + xSP], L
 #ifdef INSTRUCTION_TEST
@@ -452,8 +446,7 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | add tmp1w, 1
         | mov A, [aMem + tmp1]
         | mov tmp1b, [aMem + xSP]
-        | inc SP
-        | inc SP
+        | add SP, 2
         | pushfq
         | pop tmp3
         | and tmp3, ~0xD1
@@ -480,24 +473,21 @@ static bool inst_pop(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
         | add tmp1w, 1
         | mov B, [aMem + tmp1]
         | mov C, [aMem + xSP]
-        | inc SP
-        | inc SP
+        | add SP, 2
         break;
     case REG_DE:
         | mov tmp1, xSP
         | add tmp1w, 1
         | mov D, [aMem + tmp1]
         | mov E, [aMem + xSP]
-        | inc SP
-        | inc SP
+        | add SP, 2
         break;
     case REG_HL:
         | mov tmp1, xSP
         | add tmp1w, 1
         | mov H, [aMem + tmp1]
         | mov L, [aMem + xSP]
-        | inc SP
-        | inc SP
+        | add SP, 2
         break;
     default:
         LOG_ERROR("Invalid operand to PUSH\n");
@@ -874,25 +864,25 @@ static bool inst_rr(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     switch (inst->op1) {
     case REG_A:
-        | cmp A, 0
+        | test A, A
         break;
     case REG_B:
-        | cmp B, 0
+        | test B, B
         break;
     case REG_C:
-        | cmp C, 0
+        | test C, C
         break;
     case REG_D:
-        | cmp D, 0
+        | test D, D
         break;
     case REG_E:
-        | cmp E, 0
+        | test E, E
         break;
     case REG_H:
-        | cmp H, 0
+        | test H, H
         break;
     case REG_L:
-        | cmp L, 0
+        | test L, L
         break;
     case MEM_HL:
         | movzx xL, L // and xL, 0xff
@@ -946,25 +936,25 @@ static bool inst_rl(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     switch (inst->op1) {
     case REG_A:
-        | cmp A, 0
+        | test A, A
         break;
     case REG_B:
-        | cmp B, 0
+        | test B, B
         break;
     case REG_C:
-        | cmp C, 0
+        | test C, C
         break;
     case REG_D:
-        | cmp D, 0
+        | test D, D
         break;
     case REG_E:
-        | cmp E, 0
+        | test E, E
         break;
     case REG_H:
-        | cmp H, 0
+        | test H, H
         break;
     case REG_L:
-        | cmp L, 0
+        | test L, L
         break;
     case MEM_HL:
         | movzx xL, L // and xL, 0xff
@@ -1018,25 +1008,25 @@ static bool inst_rrc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     switch (inst->op1) {
     case REG_A:
-        | cmp A, 0
+        | test A, A
         break;
     case REG_B:
-        | cmp B, 0
+        | test B, B
         break;
     case REG_C:
-        | cmp C, 0
+        | test C, C
         break;
     case REG_D:
-        | cmp D, 0
+        | test D, D
         break;
     case REG_E:
-        | cmp E, 0
+        | test E, E
         break;
     case REG_H:
-        | cmp H, 0
+        | test H, H
         break;
     case REG_L:
-        | cmp L, 0
+        | test L, L
         break;
     case MEM_HL:
         | movzx xL, L // and xL, 0xff
@@ -1090,25 +1080,25 @@ static bool inst_rlc(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
 
     switch (inst->op1) {
     case REG_A:
-        | cmp A, 0
+        | test A, A
         break;
     case REG_B:
-        | cmp B, 0
+        | test B, B
         break;
     case REG_C:
-        | cmp C, 0
+        | test C, C
         break;
     case REG_D:
-        | cmp D, 0
+        | test D, D
         break;
     case REG_E:
-        | cmp E, 0
+        | test E, E
         break;
     case REG_H:
-        | cmp H, 0
+        | test H, H
         break;
     case REG_L:
-        | cmp L, 0
+        | test L, L
         break;
     case MEM_HL:
         | movzx xL, L // and xL, 0xff
@@ -1277,7 +1267,7 @@ static bool inst_daa(dasm_State **Dst, gbz80_inst *inst, uint64_t *cycles)
     
     /* if A is zero, set the Z flag */
     | 1:
-    | cmp A, 0
+    | test A, A
     | jnz >1
     | or tmp3w, 0x40
     | 1:
