@@ -680,4 +680,8 @@ make check
 
 ## License
 
-`jitboy` is licensed under the MIT License.
+`jitboy` is licensed under the GPLv3.
+
+Copyright (C) 2020-2021 National Cheng Kung University, Taiwan.
+Originally written by Thomas Witte.
+The emulation of the audio processing unit (APU) was based on [MiniGBS](https://github.com/baines/MiniGBS), written by Alex Baines.
