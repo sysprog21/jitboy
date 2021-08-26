@@ -684,4 +684,8 @@ make check
 
 Copyright (C) 2020-2021 National Cheng Kung University, Taiwan.
 Originally written by Thomas Witte.
-The emulation of the audio processing unit (APU) was based on [MiniGBS](https://github.com/baines/MiniGBS), written by Alex Baines.
+
+External source code:
+* The emulation of the audio processing unit (APU) was based on [MiniGBS](https://github.com/baines/MiniGBS), written by Alex Baines. MIT License.
+* [GBIT](https://github.com/koenk/gbit) (Game Boy Instruction Tester), written by Koen Koning. MIT License.
+* DynASM is part of [LuaJIT](https://github.com/LuaJIT/LuaJIT), written by Mike Pall. MIT License.
