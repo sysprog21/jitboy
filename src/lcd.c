@@ -220,6 +220,14 @@ void deinit_window(gb_lcd *lcd)
     SDL_Quit();
 }
 
+void toggle_fullscreen(gb_lcd *lcd)
+{
+    SDL_LockMutex(lcd->vblank_mutex);
+    SDL_SetWindowFullscreen(lcd->win, lcd->fullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
+    lcd->fullscreen = !lcd->fullscreen;
+    SDL_UnlockMutex(lcd->vblank_mutex);
+}
+
 static void lock()
 {
     if (!g_lcd)

@@ -10,10 +10,12 @@ typedef struct {
     SDL_cond *vblank_cond;
     SDL_Thread *thread;
     bool exit;
+    bool fullscreen;
 } gb_lcd;
 
 bool init_window(gb_lcd *lcd);
 void deinit_window(gb_lcd *lcd);
 void update_line(uint8_t *mem);
+void toggle_fullscreen(gb_lcd *lcd);
 
 #endif
