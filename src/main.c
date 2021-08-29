@@ -1,4 +1,3 @@
-#include <execinfo.h>
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -86,29 +85,29 @@ int main(int argc, char *argv[])
         while (SDL_PollEvent(&evt)) {
             switch (evt.type) {
             case SDL_KEYUP:
-                switch (evt.key.keysym.sym) {
-                case SDLK_x:
+                switch (evt.key.keysym.scancode) {
+                case SDL_SCANCODE_X:
                     vm->state.keys.state &= ~GB_KEY_A;
                     break;
-                case SDLK_z:
+                case SDL_SCANCODE_Z:
                     vm->state.keys.state &= ~GB_KEY_B;
                     break;
-                case SDLK_UP:
+                case SDL_SCANCODE_UP:
                     vm->state.keys.state &= ~GB_KEY_UP;
                     break;
-                case SDLK_DOWN:
+                case SDL_SCANCODE_DOWN:
                     vm->state.keys.state &= ~GB_KEY_DOWN;
                     break;
-                case SDLK_LEFT:
+                case SDL_SCANCODE_LEFT:
                     vm->state.keys.state &= ~GB_KEY_LEFT;
                     break;
-                case SDLK_RIGHT:
+                case SDL_SCANCODE_RIGHT:
                     vm->state.keys.state &= ~GB_KEY_RIGHT;
                     break;
-                case SDLK_RETURN: /* start button */
+                case SDL_SCANCODE_RETURN: /* start button */
                     vm->state.keys.state &= ~GB_KEY_START;
                     break;
-                case SDLK_BACKSPACE: /* select button */
+                case SDL_SCANCODE_BACKSPACE: /* select button */
                     vm->state.keys.state &= ~GB_KEY_SELECT;
                     break;
                 default:
@@ -116,40 +115,45 @@ int main(int argc, char *argv[])
                 }
                 break;
             case SDL_KEYDOWN:
-                switch (evt.key.keysym.sym) {
-                case SDLK_x:
+                switch (evt.key.keysym.scancode) {
+                case SDL_SCANCODE_X:
                     vm->state.keys.state |= GB_KEY_A;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_z:
+                case SDL_SCANCODE_Z:
                     vm->state.keys.state |= GB_KEY_B;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_UP:
+                case SDL_SCANCODE_UP:
                     vm->state.keys.state |= GB_KEY_UP;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_DOWN:
+                case SDL_SCANCODE_DOWN:
                     vm->state.keys.state |= GB_KEY_DOWN;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_LEFT:
+                case SDL_SCANCODE_LEFT:
                     vm->state.keys.state |= GB_KEY_LEFT;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_RIGHT:
+                case SDL_SCANCODE_RIGHT:
                     vm->state.keys.state |= GB_KEY_RIGHT;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_RETURN: /* start button */
-                    vm->state.keys.state |= GB_KEY_START;
-                    vm->memory.mem[0xff0f] |= 0x10;
+                case SDL_SCANCODE_RETURN: /* start button */
+                    if (evt.key.keysym.mod & KMOD_LALT ||
+                        evt.key.keysym.mod & KMOD_RALT)
+                        toggle_fullscreen(&vm->lcd);
+                    else {
+                        vm->state.keys.state |= GB_KEY_START;
+                        vm->memory.mem[0xff0f] |= 0x10;
+                    }
                     break;
-                case SDLK_BACKSPACE: /* select button */
+                case SDL_SCANCODE_BACKSPACE: /* select button */
                     vm->state.keys.state |= GB_KEY_SELECT;
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
-                case SDLK_ESCAPE:
+                case SDL_SCANCODE_ESCAPE:
                     goto end_program;
                 default:
                     break;

@@ -666,6 +666,8 @@ make check
 | Start             | Return     |
 | Select            | Backspace  |
 | D-Pad             | Arrow Keys |
+| Power off         | ESC        |
+| Fullscreen        | Alt-Return |
 
 ## Known Issues
 
