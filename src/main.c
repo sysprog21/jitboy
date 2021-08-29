@@ -141,7 +141,8 @@ int main(int argc, char *argv[])
                     vm->memory.mem[0xff0f] |= 0x10;
                     break;
                 case SDL_SCANCODE_RETURN: /* start button */
-                    if (evt.key.keysym.mod & KMOD_LALT || evt.key.keysym.mod & KMOD_RALT)
+                    if (evt.key.keysym.mod & KMOD_LALT ||
+                        evt.key.keysym.mod & KMOD_RALT)
                         toggle_fullscreen(&vm->lcd);
                     else {
                         vm->state.keys.state |= GB_KEY_START;
