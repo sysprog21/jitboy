@@ -152,7 +152,8 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
         case MBC5_RAM_BAT:
         case MBC5:
             if (addr >= 0x4000) {
-                gb_memory_change_ram_bank(state->mem, value);
+                int bank = (value & 0xf);
+                gb_memory_change_ram_bank(state->mem, bank);
             } else if (addr >= 0x2000) {
                 int bank = value;
 
