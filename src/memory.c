@@ -292,4 +292,9 @@ void dump_header_info(gb_memory *mem)
 
     /* recording header info for some later usage */
     mem->max_ram_banks_num = ram_size == 2 ? 1 : ram_size / 8;
+    if (mem->max_ram_banks_num > MAX_RAM_BANKS) {
+        LOG_ERROR("unsupported RAM bank count (%i), hard capped to %i banks",
+                  mem->max_ram_banks_num, MAX_RAM_BANKS);
+        mem->max_ram_banks_num = MAX_RAM_BANKS;
+    }
 }
