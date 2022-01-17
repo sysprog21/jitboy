@@ -10,7 +10,7 @@
 #include "memory.h"
 
 #define MAX_ROM_BANKS 256
-#define MAX_RAM_BANKS 4
+#define MAX_RAM_BANKS 16
 
 typedef struct {
     gb_state state;

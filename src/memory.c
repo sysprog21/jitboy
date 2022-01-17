@@ -133,10 +133,13 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
             if (addr >= 0x6000) {
                 gb_memory_update_rtc_time(state->mem, value);
             } else if (addr >= 0x4000) {
-                if (value <= 4)
+                if (value < 4) {
                     gb_memory_change_ram_bank(state->mem, value);
-                else
+                } else if (value >= 8 && value < 13) {
                     gb_memory_access_rtc(state->mem, value);
+                } else {
+                    LOG_DEBUG("failed to change ram bank to %i\n", value);
+                }
             } else if (addr >= 0x2000) {
                 int bank = (value & 0x7f);
                 if (bank == 0)
@@ -149,7 +152,8 @@ void gb_memory_write(gb_state *state, uint64_t addr, uint64_t value)
         case MBC5_RAM_BAT:
         case MBC5:
             if (addr >= 0x4000) {
-                gb_memory_change_ram_bank(state->mem, value);
+                int bank = (value & 0xf);
+                gb_memory_change_ram_bank(state->mem, bank);
             } else if (addr >= 0x2000) {
                 int bank = value;
 
@@ -288,4 +292,9 @@ void dump_header_info(gb_memory *mem)
 
     /* recording header info for some later usage */
     mem->max_ram_banks_num = ram_size == 2 ? 1 : ram_size / 8;
+    if (mem->max_ram_banks_num > MAX_RAM_BANKS) {
+        LOG_ERROR("unsupported RAM bank count (%i), hard capped to %i banks",
+                  mem->max_ram_banks_num, MAX_RAM_BANKS);
+        mem->max_ram_banks_num = MAX_RAM_BANKS;
+    }
 }

@@ -16,18 +16,26 @@ bool read_battery(char *savfile, gb_memory *mem)
         return false;
     }
 
-    /* get file size and allocate size accordingly */
+    /* get file size */
     fseek(fp, 0, SEEK_END);
     size_t sz = ftell(fp) * sizeof(uint8_t);
     rewind(fp);
 
-    size_t read_size = fread(mem->ram_banks, sizeof(uint8_t), sz, fp);
-    fclose(fp);
+    size_t ramsize = mem->max_ram_banks_num * 0x2000;
 
-    if (read_size != mem->max_ram_banks_num * 0x2000) {
+    if (sz != ramsize) {
         LOG_ERROR("Size mismatch between savfile and cartridge RAM\n");
         return false;
     }
+
+    size_t read_size = fread(mem->ram_banks, sizeof(uint8_t), sz, fp);
+    fclose(fp);
+
+    if (read_size != ramsize) {
+        LOG_ERROR("Short read from savfile\n");
+        return false;
+    }
+
     return true;
 }
 
