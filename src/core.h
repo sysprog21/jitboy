@@ -31,8 +31,13 @@ typedef struct {
 
 void free_block(gb_block *block);
 
-bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io);
-bool run_vm(gb_vm *vm);
+bool init_vm(gb_vm *vm,
+             const char *filename,
+             int opt_level,
+             int scale,
+             bool init_render,
+             bool init_sound);
+bool run_vm(gb_vm *vm, bool turbo);
 bool free_vm(gb_vm *vm);
 
 #endif

@@ -181,11 +181,13 @@ static int render_thread_function(void *ptr)
     return 0;
 }
 
-bool init_window(gb_lcd *lcd)
+bool init_window(gb_lcd *lcd, int scale)
 {
     SDL_Init(SDL_INIT_VIDEO);
+    int width = 160 * scale;
+    int height = 144 * scale;
     lcd->win = SDL_CreateWindow("jitboy", SDL_WINDOWPOS_UNDEFINED,
-                                SDL_WINDOWPOS_UNDEFINED, 160 * 3, 144 * 3,
+                                SDL_WINDOWPOS_UNDEFINED, width, height,
                                 SDL_WINDOW_OPENGL);
     if (!lcd->win) {
         LOG_ERROR("Window could not be created! SDL_Error: %s\n",

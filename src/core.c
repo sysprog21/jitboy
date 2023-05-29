@@ -10,7 +10,12 @@ void free_block(gb_block *block)
     munmap(block->mem, block->size);
 }
 
-bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
+bool init_vm(gb_vm *vm,
+             const char *filename,
+             int opt_level,
+             int scale,
+             bool init_render,
+             bool init_sound)
 {
     if (!gb_memory_init(&vm->memory, filename))
         return false;
@@ -88,9 +93,9 @@ bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
     if (!read_battery(vm->memory.savname, &vm->memory))
         LOG_ERROR("Fail to read battery\n");
 
-    if (init_io) {
+    if (init_render) {
         /* both audio and lcd will be initialized if init_io is true*/
-        if (!init_window(&vm->lcd))
+        if (!init_window(&vm->lcd, scale))
             return false;
 
         vm->draw_frame = true;
@@ -100,14 +105,15 @@ bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
         vm->frame_cnt = 0;
 
         vm->opt_level = opt_level;
-
+    }
+    if (init_sound) {
         audio_init(&vm->audio, &vm->memory);
     }
 
     return true;
 }
 
-bool run_vm(gb_vm *vm)
+bool run_vm(gb_vm *vm, bool turbo)
 {
     uint16_t prev_pc = vm->state.last_pc;
     vm->state.last_pc = vm->state.pc;
@@ -181,8 +187,11 @@ bool run_vm(gb_vm *vm)
             if (vm->memory.mem[0xff44] == 144) {
                 if (vm->draw_frame) {
                     unsigned time = SDL_GetTicks();
-                    if (!SDL_TICKS_PASSED(time, vm->next_frame_time)) {
-                        SDL_Delay(vm->next_frame_time - time);
+                    if (!turbo) {
+                        if (!SDL_TICKS_PASSED(time, vm->next_frame_time)) {
+                            SDL_Delay(vm->next_frame_time - time);
+                        }
+                        vm->next_frame_time += 17; /* 17ms until next frame */
                     }
 
                     vm->time_busy += time - vm->last_time;
@@ -197,7 +206,6 @@ bool run_vm(gb_vm *vm)
                         vm->time_busy = 0;
                     }
 
-                    vm->next_frame_time += 17; /* 17ms until next frame */
                     SDL_CondBroadcast(vm->lcd.vblank_cond);
                     vm->draw_frame = false;
                 }
