@@ -1,3 +1,4 @@
+#include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -7,7 +8,11 @@
 
 static void usage(const char *exe)
 {
-    printf("usage: %s [-O LEVEL] file.gb\n", exe);
+    printf(
+        "Usage: %s [OPTIONS]\n"
+        "Options:\n"
+        "  -O, --opt-level=LEVEL   Set the optimization level (default: 0)\n",
+        exe);
 }
 
 static void banner()
@@ -44,7 +49,11 @@ int main(int argc, char *argv[])
 
     int opt_level = 0;
     int c;
-    while ((c = getopt(argc, argv, "O:")) != -1) {
+    const struct option long_options[] = {
+        {"opt-level", required_argument, NULL, 'O'},
+        {NULL, 0, NULL, 0}  // Terminating element
+    };
+    while ((c = getopt_long(argc, argv, "O:", long_options, NULL)) != -1) {
         switch (c) {
         case 'O':
             sscanf(optarg, "%i", &opt_level);
