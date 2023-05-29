@@ -12,7 +12,8 @@ static void usage(const char *exe)
         "Usage: %s [OPTIONS]\n"
         "Options:\n"
         "  -O, --opt-level=LEVEL   Set the optimization level (default: 0)\n"
-        "  -s, --scale=SCALE       Set the scale of the window (default: 3)\n",
+        "  -s, --scale=SCALE       Set the scale of the window (default: 3)\n"
+        "  -t, --turbo             Run in turbo mode\n",
         exe);
 }
 
@@ -50,19 +51,26 @@ int main(int argc, char *argv[])
 
     int opt_level = 0;
     int scale = 3;
+    int turbo = false;
+
     int c;
     const struct option long_options[] = {
         {"opt-level", required_argument, NULL, 'O'},
         {"scale", required_argument, NULL, 's'},
+        {"turbo", no_argument, NULL, 't'},
         {NULL, 0, NULL, 0}  // Terminating element
     };
-    while ((c = getopt_long(argc, argv, "O:s:", long_options, NULL)) != -1) {
+
+    while ((c = getopt_long(argc, argv, "O:s:t", long_options, NULL)) != -1) {
         switch (c) {
         case 'O':
             sscanf(optarg, "%i", &opt_level);
             break;
         case 's':
             sscanf(optarg, "%i", &scale);
+            break;
+        case 't':
+            turbo = true;
             break;
         case '?':
         default:
@@ -96,7 +104,7 @@ int main(int argc, char *argv[])
     SDL_Event evt;
 
     /* start emulation */
-    while (run_vm(vm)) {
+    while (run_vm(vm, turbo)) {
         while (SDL_PollEvent(&evt)) {
             switch (evt.type) {
             case SDL_KEYUP:
