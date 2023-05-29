@@ -14,7 +14,8 @@ bool init_vm(gb_vm *vm,
              const char *filename,
              int opt_level,
              int scale,
-             bool init_io)
+             bool init_render,
+             bool init_sound)
 {
     if (!gb_memory_init(&vm->memory, filename))
         return false;
@@ -92,7 +93,7 @@ bool init_vm(gb_vm *vm,
     if (!read_battery(vm->memory.savname, &vm->memory))
         LOG_ERROR("Fail to read battery\n");
 
-    if (init_io) {
+    if (init_render) {
         /* both audio and lcd will be initialized if init_io is true*/
         if (!init_window(&vm->lcd, scale))
             return false;
@@ -104,7 +105,8 @@ bool init_vm(gb_vm *vm,
         vm->frame_cnt = 0;
 
         vm->opt_level = opt_level;
-
+    }
+    if (init_sound) {
         audio_init(&vm->audio, &vm->memory);
     }
 

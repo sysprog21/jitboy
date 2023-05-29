@@ -13,7 +13,8 @@ static void usage(const char *exe)
         "Options:\n"
         "  -O, --opt-level=LEVEL   Set the optimization level (default: 0)\n"
         "  -s, --scale=SCALE       Set the scale of the window (default: 3)\n"
-        "  -t, --turbo             Run in turbo mode\n",
+        "  -t, --turbo             Run in turbo mode\n"
+        "      --no-sound          Disable audio initialization\n",
         exe);
 }
 
@@ -52,12 +53,14 @@ int main(int argc, char *argv[])
     int opt_level = 0;
     int scale = 3;
     int turbo = false;
+    int init_sound = true;
 
     int c;
     const struct option long_options[] = {
         {"opt-level", required_argument, NULL, 'O'},
         {"scale", required_argument, NULL, 's'},
         {"turbo", no_argument, NULL, 't'},
+        {"no-sound", no_argument, NULL, 'a'},
         {NULL, 0, NULL, 0}  // Terminating element
     };
 
@@ -71,6 +74,9 @@ int main(int argc, char *argv[])
             break;
         case 't':
             turbo = true;
+            break;
+        case 'a':
+            init_sound = false;
             break;
         case '?':
         default:
@@ -91,7 +97,7 @@ int main(int argc, char *argv[])
 
     /* initialize memory */
     gb_vm *vm = malloc(sizeof(gb_vm));
-    if (!init_vm(vm, argv[optind], opt_level, scale, true)) {
+    if (!init_vm(vm, argv[optind], opt_level, scale, true, init_sound)) {
         LOG_ERROR("Fail to initialize\n");
         exit(1);
     }
