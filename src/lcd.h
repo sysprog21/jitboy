@@ -13,7 +13,7 @@ typedef struct {
     bool fullscreen;
 } gb_lcd;
 
-bool init_window(gb_lcd *lcd);
+bool init_window(gb_lcd *lcd, int scale);
 void deinit_window(gb_lcd *lcd);
 void update_line(uint8_t *mem);
 void toggle_fullscreen(gb_lcd *lcd);

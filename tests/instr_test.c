@@ -37,7 +37,7 @@ static void gbz80_init(size_t tester_instruction_mem_size,
     instruction_mem = tester_instruction_mem;
 
     vm = malloc(sizeof(gb_vm));
-    if (!init_vm(vm, NULL, 0, false)) {
+    if (!init_vm(vm, NULL, 0, 0, false)) {
         LOG_ERROR("Fail to initialize\n");
         exit(1);
     }

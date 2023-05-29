@@ -10,7 +10,11 @@ void free_block(gb_block *block)
     munmap(block->mem, block->size);
 }
 
-bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
+bool init_vm(gb_vm *vm,
+             const char *filename,
+             int opt_level,
+             int scale,
+             bool init_io)
 {
     if (!gb_memory_init(&vm->memory, filename))
         return false;
@@ -90,7 +94,7 @@ bool init_vm(gb_vm *vm, const char *filename, int opt_level, bool init_io)
 
     if (init_io) {
         /* both audio and lcd will be initialized if init_io is true*/
-        if (!init_window(&vm->lcd))
+        if (!init_window(&vm->lcd, scale))
             return false;
 
         vm->draw_frame = true;
